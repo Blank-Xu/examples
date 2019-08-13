@@ -1,0 +1,16 @@
+run_mode: dev
+
+ip:
+port: 8080
+
+work_dir: files
+
+# 上传人数限制
+upload_limit: 20
+# 单位：MB
+upload_max_size: 200
+upload_chunk_size: 4
+
+# 下载人数限制
+download_limit: 100
+download_chunk_size: 4
