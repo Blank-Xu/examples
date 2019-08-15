@@ -1,7 +1,6 @@
 package file
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -34,29 +33,31 @@ func Info() http.HandlerFunc {
 		}
 
 		var resp = infoResponse{
-			Name:    file.Name(),
-			Size:    file.Size(),
-			ModTime: file.ModTime().Unix(),
+			Name:              file.Name(),
+			Size:              file.Size(),
+			ModTime:           file.ModTime().Unix(),
+			UploadMaxSize:     config.Default.UploadMaxSize,
+			UploadChunkSize:   config.Default.UploadChunkSize,
+			DownloadChunkSize: config.Default.DownloadChunkSize,
 		}
 
-		var buf bytes.Buffer
-		if err = json.NewEncoder(&buf).Encode(resp); err != nil {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+
+		if err = json.NewEncoder(w).Encode(resp); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 
 			log.Printf("info json encode failed, err: %v\n", err)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		if _, err = w.Write(buf.Bytes()); err != nil {
-			log.Printf("info response data failed, err: %v\n", err)
 		}
 	}
 }
 
 type infoResponse struct {
-	Name    string `json:"name"`
-	Size    int64  `json:"size"`
-	ModTime int64  `json:"mod_time"`
+	Name              string `json:"name"`
+	Size              int64  `json:"size"`
+	ModTime           int64  `json:"mod_time"`
+	UploadMaxSize     int64  `json:"upload_max_size"`
+	UploadChunkSize   int64  `json:"upload_chunk_size"`
+	DownloadChunkSize int64  `json:"download_chunk_size"`
 }

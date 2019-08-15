@@ -70,4 +70,5 @@ __recovery/
 
 files/
 
-fileservice
+fileserver
+client
