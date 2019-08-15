@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 )
 
 var (
@@ -21,6 +21,8 @@ type config struct {
 	IP      string `yaml:"ip"`
 	Port    int    `yaml:"port"`
 	WorkDir string `yaml:"work_dir"`
+
+	FileMd5Limit int `yaml:"file_md5_limit"`
 
 	UploadLimit     int   `yaml:"upload_limit"`
 	UploadMaxSize   int64 `yaml:"upload_max_size"`
@@ -67,10 +69,6 @@ func defaultCheck() {
 		Default.WorkDir = "files"
 	}
 
-	// if !strings.ContainsRune(Default.WorkDir, os.PathSeparator) {
-	// 	Default.WorkDir = fmt.Sprintf("%s%v", Default.WorkDir, os.PathSeparator)
-	// }
-
 	if err := os.Mkdir(Default.WorkDir, os.ModePerm); err != nil {
 		if !os.IsExist(err) {
 			panic(fmt.Sprintf("mkdir[%s] failed, err: %v", Default.WorkDir, err))
@@ -88,12 +86,6 @@ func defaultCheck() {
 	} else {
 		Default.UploadChunkSize *= 1024 * 1024
 	}
-
-	// if Default.DownloadMaxSize == 0 {
-	// 	Default.DownloadMaxSize = defaultMaxSize
-	// } else{
-	// 		Default.DownloadMaxSize *= 1024*1024
-	// 	}
 
 	if Default.DownloadChunkSize == 0 {
 		Default.DownloadChunkSize = defaultChunkSize

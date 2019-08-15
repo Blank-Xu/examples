@@ -8,12 +8,14 @@ import (
 	"path/filepath"
 
 	"framework/fileservice/server/config"
+	"framework/fileservice/server/utils"
 )
 
 func Info() http.HandlerFunc {
+	var md5Limit = make(chan struct{}, config.Default.FileMd5Limit)
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusBadGateway)
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 
@@ -25,17 +27,33 @@ func Info() http.HandlerFunc {
 
 		log.Printf("info request filename: %s\n", filename)
 
-		file, err := os.Stat(filepath.Join(config.Default.WorkDir, filename))
+		var lfilename = filepath.Join(config.Default.WorkDir, filename)
+		file, err := os.Stat(lfilename)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+			if os.IsNotExist(err) {
+				w.WriteHeader(http.StatusBadGateway)
+			} else {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(err.Error()))
+			}
 			return
+		}
+		var md5 string
+		if check := r.FormValue("md5"); check == "true" {
+			md5Limit <- struct{}{}
+			defer func() {
+				<-md5Limit
+			}()
+
+			mfile, _ := os.OpenFile(lfilename, os.O_RDONLY, 0666)
+			md5 = utils.Md5File(mfile)
 		}
 
 		var resp = infoResponse{
 			Name:              file.Name(),
 			Size:              file.Size(),
 			ModTime:           file.ModTime().Unix(),
+			Md5:               md5,
 			UploadMaxSize:     config.Default.UploadMaxSize,
 			UploadChunkSize:   config.Default.UploadChunkSize,
 			DownloadChunkSize: config.Default.DownloadChunkSize,
@@ -57,6 +75,7 @@ type infoResponse struct {
 	Name              string `json:"name"`
 	Size              int64  `json:"size"`
 	ModTime           int64  `json:"mod_time"`
+	Md5               string `json:"md5"`
 	UploadMaxSize     int64  `json:"upload_max_size"`
 	UploadChunkSize   int64  `json:"upload_chunk_size"`
 	DownloadChunkSize int64  `json:"download_chunk_size"`

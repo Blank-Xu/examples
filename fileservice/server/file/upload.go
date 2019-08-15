@@ -26,7 +26,8 @@ func Upload() http.HandlerFunc {
 
 			var filename = r.FormValue("filename")
 			if len(filename) == 0 {
-				w.WriteHeader(http.StatusBadGateway)
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("params invalid"))
 				return
 			}
 
@@ -57,7 +58,7 @@ func Upload() http.HandlerFunc {
 
 			log.Printf("upload length: %d, start: %d, end: %d\n", contentLength, start, end)
 
-			if contentLength != (end-start) || contentLength > config.Default.UploadChunkSize {
+			if contentLength != (end-start+1) || contentLength > config.Default.UploadChunkSize {
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte("range size invalid"))
 				return
@@ -105,7 +106,7 @@ func Upload() http.HandlerFunc {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(strconv.FormatInt(size, 10)))
 		default:
-			w.WriteHeader(http.StatusBadGateway)
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 	}

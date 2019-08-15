@@ -8,24 +8,26 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
 
-const chunkSize = 4 * 1024 * 1024
-
 func Upload(host, filename string) error {
-	file, err := os.OpenFile(filename, os.O_RDONLY, 0666)
+	file, err := os.OpenFile(filepath.Join(workDir, filename), os.O_RDONLY, 0666)
 	if err != nil {
 		return err
 	}
-	info, _ := file.Stat()
 
-	var upfilename = strconv.FormatInt(time.Now().UnixNano(), 10)
+	var (
+		info, _    = file.Stat()
+		upfilename = strconv.FormatInt(time.Now().UnixNano(), 10)
 
+		upsize int64
+	)
 	for {
 		sinfo, err := Info(host, upfilename)
-		if err != nil {
+		if err != nil && err != os.ErrExist {
 			return err
 		}
 
@@ -42,33 +44,37 @@ func Upload(host, filename string) error {
 		if _, err = file.ReadAt(data, sinfo.Size); err != nil && err != io.EOF {
 			return err
 		}
-		if err = uploadChunk(host, upfilename, bytes.NewReader(data), sinfo.Size-1, sinfo.Size-1+int64(size)); err != nil {
+		if size, err = uploadChunk(host, upfilename, bytes.NewReader(data), sinfo.Size, sinfo.Size-1+int64(size)); err != nil {
 			return err
 		}
+		upsize += size
 	}
+	log.Printf("upload success, size: %d", upsize)
+	return nil
 }
 
-func uploadChunk(host, filename string, body io.Reader, start, end int64) error {
+func uploadChunk(host, filename string, body io.Reader, start, end int64) (int64, error) {
 	var req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("%s/upload?filename=%s", host, filename), body)
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
 
 	var httpClient = http.Client{Timeout: requestTimeout}
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer resp.Body.Close()
 
 	var buf bytes.Buffer
 	if _, err = buf.ReadFrom(resp.Body); err != nil {
-		return err
+		return 0, err
 	}
 
+	var size int64
 	switch resp.StatusCode {
 	case http.StatusOK:
-		log.Println("upload success, size:", buf.String())
+		size, _ = strconv.ParseInt(buf.String(), 10, 64)
 	default:
 		err = errors.New(buf.String())
 	}
-	return err
+	return size, err
 }

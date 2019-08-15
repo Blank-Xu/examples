@@ -11,7 +11,7 @@ func Download() http.HandlerFunc {
 	var downloadLimit = make(chan struct{}, config.Default.DownloadLimit)
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusBadGateway)
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 

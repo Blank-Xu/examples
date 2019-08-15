@@ -6,29 +6,47 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 )
 
-const requestTimeout = time.Second * 30
+const (
+	requestTimeout = time.Second * 30
+	chunkSize      = 4 * 1024 * 1024
+	workDir        = "files"
+)
 
-type infoResponse struct {
+func init() {
+	os.MkdirAll(workDir, 0666)
+}
+
+type InfoResponse struct {
 	Name              string `json:"name"`
 	Size              int64  `json:"size"`
 	ModTime           int64  `json:"mod_time"`
+	Md5               string `json:"md5"`
 	UploadMaxSize     int64  `json:"upload_max_size"`
 	UploadChunkSize   int64  `json:"upload_chunk_size"`
 	DownloadChunkSize int64  `json:"download_chunk_size"`
 }
 
-func Info(host, filename string) (*infoResponse, error) {
-	var httpClient = http.Client{Timeout: requestTimeout}
-	resp, err := httpClient.Get(fmt.Sprintf("%s/info?filename=%s", host, filename))
+func Info(host, filename string, checkMd5 ...bool) (*InfoResponse, error) {
+	var (
+		httpClient = http.Client{Timeout: requestTimeout}
+		url        string
+	)
+	if len(checkMd5) > 0 && checkMd5[0] == true {
+		url = fmt.Sprintf("%s/info?filename=%s&md5=true", host, filename)
+	} else {
+		url = fmt.Sprintf("%s/info?filename=%s", host, filename)
+	}
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	var info = new(infoResponse)
+	var info = new(InfoResponse)
 	switch resp.StatusCode {
 	case http.StatusOK:
 		err = json.NewDecoder(resp.Body).Decode(info)
