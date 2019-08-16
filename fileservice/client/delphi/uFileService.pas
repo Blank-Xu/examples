@@ -125,6 +125,10 @@ var
   url, lFileName: string;
 begin
   Result := False;
+
+  totalSize := 0;
+  size := 0;
+
   if InfoHead(fileName, totalSize) then
   begin
     url := Format(URL_DOWNLOAD, [FHost, fileName]);
@@ -242,7 +246,8 @@ begin
     try
       fileStream.Position := offset;
 
-      MStream.CopyFrom(fileStream, size);
+      MStream.CopyFrom(fileStream, size - offset + 1);
+      MStream.Position := 0;
 
       FResponse := FHttpClient.Post(url, MStream, RespStream, AHeaders);
       if (FResponse.StatusCode = 200) or (FResponse.StatusCode = 206) then
@@ -258,7 +263,7 @@ begin
         finally
           if Assigned(SStream) then
             FreeAndNil(SStream);
-				end;
+        end;
       end;
     except
       on E: Exception do
@@ -269,7 +274,7 @@ begin
       FreeAndNil(MStream);
     if Assigned(RespStream) then
       FreeAndNil(RespStream);
-	end;
+  end;
 end;
 
 function TFileService.UploadFile(fileName: string): Boolean;
@@ -284,6 +289,10 @@ begin
     FError := 'file not found';
     Exit;
   end;
+
+  sSize := 0;
+  size := 0;
+
   if InfoHead(fileName, sSize) or (StatusCode = 404) then
   begin
     url := Format(URL_UPLOAD, [FHost, fileName]);
@@ -304,8 +313,8 @@ begin
             FError := 'server file size error';
             Exit;
           end
-          else if size > FDownloadChunkSize then
-            size := FDownloadChunkSize;
+          else if size > FUploadChunkSize then
+            size := FUploadChunkSize;
 
           if not UploadChunk(fStream, url, sSize, sSize + size - 1) then
             Exit;
