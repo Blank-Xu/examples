@@ -22,6 +22,9 @@ func main() {
 	var (
 		wg  sync.WaitGroup
 		now = time.Now()
+
+		successCount int
+		_lock        sync.Mutex
 	)
 
 	wg.Add(*count)
@@ -42,6 +45,10 @@ func main() {
 
 			if err != nil {
 				log.Println(err)
+			} else {
+				_lock.Lock()
+				successCount += 1
+				_lock.Unlock()
 			}
 
 			wg.Done()
@@ -50,6 +57,6 @@ func main() {
 
 	wg.Wait()
 
-	log.Printf("total time cost: %v, count: %d, every func cost: %v",
-		time.Since(now), *count, float64(time.Since(now).Nanoseconds())/float64(*count))
+	log.Printf("total time cost: %v, success count: %d, every func cost: %v",
+		time.Since(now), *count, time.Since(now).Nanoseconds()/int64(*count))
 }
