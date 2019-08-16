@@ -3,7 +3,7 @@ program FileClient;
 uses
   Vcl.Forms,
   uClient in 'uClient.pas' {frmClient},
-  uFile in 'uFile.pas';
+  uFileService in 'uFileService.pas';
 
 {$R *.res}
 

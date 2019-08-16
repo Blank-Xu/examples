@@ -11,6 +11,94 @@ object frmClient: TfrmClient
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
+  object mmo: TMemo
+    Left = 0
+    Top = 35
+    Width = 897
+    Height = 377
+    Align = alClient
+    ScrollBars = ssVertical
+    TabOrder = 0
+  end
+  object pnl1: TPanel
+    Left = 0
+    Top = 0
+    Width = 897
+    Height = 35
+    Align = alTop
+    Caption = 'pnl1'
+    TabOrder = 1
+    object btn1: TButton
+      Left = 575
+      Top = 4
+      Width = 75
+      Height = 25
+      Caption = 'info_head'
+      TabOrder = 0
+      OnClick = btn1Click
+    end
+    object edtHost: TEdit
+      Left = 1
+      Top = 1
+      Width = 288
+      Height = 33
+      Align = alLeft
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -16
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+      TabOrder = 1
+      Text = 'http://127.0.0.1:8080'
+      ExplicitHeight = 27
+    end
+    object btn2: TButton
+      Left = 656
+      Top = 4
+      Width = 75
+      Height = 25
+      Caption = 'info'
+      TabOrder = 2
+      OnClick = btn2Click
+    end
+    object btn3: TButton
+      Left = 737
+      Top = 4
+      Width = 75
+      Height = 25
+      Caption = 'download'
+      TabOrder = 3
+      OnClick = btn3Click
+    end
+    object btn4: TButton
+      Left = 818
+      Top = 4
+      Width = 75
+      Height = 25
+      Caption = 'upload'
+      TabOrder = 4
+      OnClick = btn4Click
+    end
+    object edtFilename: TEdit
+      Left = 289
+      Top = 1
+      Width = 192
+      Height = 33
+      Align = alLeft
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -16
+      Font.Name = 'Tahoma'
+      Font.Style = []
+      ParentFont = False
+      TabOrder = 5
+      Text = 'abc.txt'
+      ExplicitHeight = 27
+    end
+  end
 end

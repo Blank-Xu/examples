@@ -31,7 +31,8 @@ func Info() http.HandlerFunc {
 			file, err := os.Stat(lfilename)
 			if err != nil {
 				if os.IsNotExist(err) {
-					w.WriteHeader(http.StatusBadGateway)
+					w.WriteHeader(http.StatusNotFound)
+					w.Write([]byte(http.StatusText(http.StatusNotFound)))
 				} else {
 					w.WriteHeader(http.StatusBadRequest)
 					w.Write([]byte(err.Error()))
