@@ -20,7 +20,7 @@ func TestDownload(t *testing.T) {
 		err error
 	)
 	info, _ = os.Stat(lfilename)
-	if len(info.Name()) > 0 {
+	if info != nil && len(info.Name()) > 0 {
 		if err = os.Remove(lfilename); err != nil {
 			t.Fatal(err)
 		}
@@ -42,7 +42,7 @@ func BenchmarkDownload(b *testing.B) {
 			err error
 		)
 		info, _ = os.Stat(lfilename)
-		if len(info.Name()) > 0 {
+		if info != nil && len(info.Name()) > 0 {
 			if err = os.Remove(lfilename); err != nil {
 				b.Fatal(err)
 			}

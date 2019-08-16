@@ -63,3 +63,22 @@ func Info(host, filename string, checkMd5 ...bool) (*InfoResponse, error) {
 
 	return info, err
 }
+
+func InfoHead(host, filename string) (int64, error) {
+	var (
+		httpClient = http.Client{Timeout: requestTimeout}
+		url        = fmt.Sprintf("%s/info?filename=%s", host, filename)
+	)
+	resp, err := httpClient.Head(url)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return resp.ContentLength, nil
+	default:
+		return 0, errors.New("404")
+	}
+}

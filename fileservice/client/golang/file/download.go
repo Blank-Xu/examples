@@ -20,7 +20,7 @@ func Download(host, filename string) error {
 		return err
 	}
 
-	sSize, err := infoSize(host, filename)
+	sSize, err := InfoHead(host, filename)
 	if err != nil {
 		return err
 	}

@@ -29,7 +29,7 @@ func Upload(host, filename string, safety ...bool) error {
 		upfilename = strconv.FormatInt(time.Now().UnixNano(), 10)
 	)
 	if !safeUpload {
-		if startSize, err = infoSize(host, upfilename); err != nil {
+		if startSize, err = InfoHead(host, upfilename); err != nil {
 			return err
 		}
 	}
@@ -41,7 +41,7 @@ func Upload(host, filename string, safety ...bool) error {
 
 	for {
 		if safeUpload {
-			if startSize, err = infoSize(host, upfilename); err != nil {
+			if startSize, err = InfoHead(host, upfilename); err != nil {
 				return err
 			}
 		}
@@ -96,15 +96,4 @@ func uploadChunk(host, filename string, body io.Reader, start, end int64) (int64
 		err = errors.New(buf.String())
 	}
 	return size, err
-}
-
-func infoSize(host, upfilename string) (int64, error) {
-	sinfo, err := Info(host, upfilename)
-	if err != nil && err != os.ErrExist {
-		return 0, err
-	}
-	if sinfo == nil {
-		return 0, errors.New("info data nil")
-	}
-	return sinfo.Size, nil
 }
