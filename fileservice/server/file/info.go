@@ -38,6 +38,7 @@ func Info() http.HandlerFunc {
 			}
 			return
 		}
+
 		var md5 string
 		if check := r.FormValue("md5"); check == "true" {
 			md5Limit <- struct{}{}
@@ -46,6 +47,10 @@ func Info() http.HandlerFunc {
 			}()
 
 			mfile, _ := os.OpenFile(lfilename, os.O_RDONLY, 0666)
+			if mfile != nil {
+				defer mfile.Close()
+			}
+
 			md5 = utils.Md5File(mfile)
 		}
 

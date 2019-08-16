@@ -3,28 +3,31 @@ unit uFile;
 interface
 
 uses
-	System.Classes, System.SysUtils, System.Net.URLClient, System.Net.HttpClient,
+  System.Classes,
+  System.SysUtils,
+  System.Net.URLClient,
+  System.Net.HttpClient,
   System.Net.HttpClientComponent;
 
 type
   TFileService = class
   private
     const
-      bytes = 'bytes';
-      range = 'bytes=%d-%d';
-      requestTimeout = 20;
-      infoUrl = '%s/info?filename=%s&checkMd5=%s';
-      uploadUrl = '%s/upload?filename=%s';
-      downloadUrl = '%s/download?filename=%s';
+      CONNECTION_TIMEOUT = 30;
+      RESPONSE_TIMEOUT = 30;
+      RANGE_BYTES = 'bytes=%d-%d';
+      INFO_URL = '%s/info?filename=%s&md5=%s';
+      UPLOAD_URL = '%s/upload?filename=%s';
+      DOWNLOAD_URL = '%s/download?filename=%s';
     var
-      httpClient: TNetHTTPClient;
-      Host: string;
-      FileName: string;
-    function OpenFile(fileName: string): Boolean;
+      FHttpClient: TNetHTTPClient;
+      FHost: string;
+      FFileName: string;
+    function OpenFile(const fileName: string; const mode: Word; fStream: TFileStream; err: string): Boolean;
   public
-    constructor Create; override;
+    constructor Create(host: string);
     destructor Destroy;
-    function FileInfo(fileName: string; checkMd5: Boolean): Boolean;
+    function FileInfo(fileName: string; md5: Boolean = False): Boolean;
     function DownloadFile(fileName: string): Boolean;
     function UploadFile(fileName: string): Boolean;
   end;
@@ -33,47 +36,70 @@ implementation
 
 { TFileService }
 
-constructor TFileService.Create;
+constructor TFileService.Create(host: string);
 begin
-  inherited;
-  httpClient := TNetHTTPClient.Create;
-  httpClient.ConnectionTimeout := 3;
-  httpClient.ResponseTimeout := requestTimeout;
-  httpClient.CustomHeaders['Keep-Alive'] := '60';
+  FHost := host;
+
+  FHttpClient := TNetHTTPClient.Create(nil);
+  FHttpClient.ConnectionTimeout := CONNECTION_TIMEOUT;
+  FHttpClient.ResponseTimeout := RESPONSE_TIMEOUT;
+  FHttpClient.CustomHeaders['Keep-Alive'] := '60';
 end;
 
 destructor TFileService.Destroy;
 begin
-  if Assigned(httpClient) then
-    httpClient.Free;
+  if Assigned(FHttpClient) then
+    FHttpClient.Free;
 end;
 
 function TFileService.DownloadFile(fileName: string): Boolean;
 begin
 
-  httpClient.CustomHeaders['Range'] := range;
+//	FHttpClient.CustomHeaders['Range'] := range;
 end;
 
-function TFileService.FileInfo(fileName: string; checkMd5: Boolean): Boolean;
+function TFileService.FileInfo(fileName: string; md5: Boolean = False): Boolean;
 var
   url: string;
-	Stream: TMemoryStream;
-	AHeaders: TNetHeaders  ;
-	Resp :IHTTPResponse;
+  Stream: TMemoryStream;
+  Resp: IHTTPResponse;
 begin
-	url := Format(infoUrl, [Host, fileName, checkMd5]);
-	Stream := TMemoryStream.Create;
+  Result := False;
+  url := Format(INFO_URL, [FHost, fileName, BoolToStr(md5, True)]);
 
-	Resp := httpClient.Get(url,Stream,nil);
-	if Resp.StatusCode <> 200  then
-	begin
-		Result = False;
-	end;
+  Stream := TMemoryStream.Create;
+  try
+    try
+      Resp := FHttpClient.Get(url, Stream, nil);
+      if Resp.StatusCode <> 200 then
+      begin
+
+      end;
+
+      Result := True;
+    except
+      on E: Exception do
+
+
+    end;
+  finally
+    Stream.Free;
+  end;
 end;
 
-function TFileService.OpenFile(fileName: string): Boolean;
+function TFileService.OpenFile(const fileName: string; const mode: Word; fStream: TFileStream; err: string): Boolean;
 begin
-
+  Result := False;
+  if not Assigned(fStream) then
+  begin
+    try
+      fStream := TFileStream.Create(fileName, mode);
+      Result := True;
+    except
+      on E: Exception do
+        err := E.Message;
+    end;
+  end;
 end;
 
 function TFileService.UploadFile(fileName: string): Boolean;

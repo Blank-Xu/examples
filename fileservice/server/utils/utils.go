@@ -23,6 +23,9 @@ func Md5File(file *os.File) string {
 	}
 
 	h := md5.New()
-	io.Copy(h, file)
+
+	if _, err := io.Copy(h, file); err != nil {
+		return ""
+	}
 	return hex.EncodeToString(h.Sum(nil))
 }

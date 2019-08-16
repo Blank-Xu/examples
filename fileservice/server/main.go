@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"framework/fileservice/server/config"
-	"framework/fileservice/server/file"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"framework/fileservice/server/config"
+	"framework/fileservice/server/file"
 )
 
 func main() {
@@ -50,9 +51,10 @@ func main() {
 
 	quit := make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGKILL, syscall.SIGQUIT, syscall.SIGTERM)
-	log.Printf("recive signal: %v\n", <-quit)
 
-	log.Println("start shutdown server ...")
+	log.Printf("recive signal: %v\n", <-quit)
+	log.Println("start shutdown server...")
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 

@@ -13,6 +13,7 @@ func TestMd5File(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer file1.Close()
 
 	t.Logf("filename: %s, md5:%s", filename1, Md5File(file1))
 }
@@ -22,11 +23,13 @@ func TestMd5File2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer file1.Close()
 
 	file2, err := os.OpenFile(filename2, os.O_RDONLY, 0666)
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer file2.Close()
 
 	t.Logf("filename1: %s, md5:%s", filename1, Md5File(file1))
 	t.Logf("filename2: %s, md5:%s", filename2, Md5File(file2))
@@ -38,6 +41,7 @@ func BenchmarkMd5File(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
+
 		b.Log(Md5File(file1))
 	}
 }

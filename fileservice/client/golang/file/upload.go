@@ -13,43 +13,62 @@ import (
 	"time"
 )
 
-func Upload(host, filename string) error {
+func Upload(host, filename string, safety ...bool) error {
 	file, err := os.OpenFile(filepath.Join(workDir, filename), os.O_RDONLY, 0666)
 	if err != nil {
 		return err
 	}
 
-	var (
-		info, _    = file.Stat()
-		upfilename = strconv.FormatInt(time.Now().UnixNano(), 10)
+	var safeUpload bool
+	if len(safety) > 0 && safety[0] == true {
+		safeUpload = true
+	}
 
-		upsize int64
+	var (
+		startSize  int64
+		upfilename = strconv.FormatInt(time.Now().UnixNano(), 10)
 	)
-	for {
-		sinfo, err := Info(host, upfilename)
-		if err != nil && err != os.ErrExist {
+	if !safeUpload {
+		if startSize, err = infoSize(host, upfilename); err != nil {
 			return err
 		}
+	}
 
-		var size = info.Size() - sinfo.Size
+	var (
+		info, _ = file.Stat()
+		upSize  int64
+	)
+
+	for {
+		if safeUpload {
+			if startSize, err = infoSize(host, upfilename); err != nil {
+				return err
+			}
+		}
+
+		var size = info.Size() - startSize
 		if size == 0 { // 已上传完成
-			return nil
+			break
 		} else if size < 0 { // 服务器文件大小错误
-			return fmt.Errorf("server file size error, filename: %s local size: %d, server size: %d", upfilename, info.Size(), sinfo.Size)
+			return fmt.Errorf("server file size error, filename: %s local size: %d, server size: %d", upfilename, info.Size(), startSize)
 		} else if size > chunkSize { // 检查是否需要分包上传
 			size = chunkSize
 		}
 
 		var data = make([]byte, size)
-		if _, err = file.ReadAt(data, sinfo.Size); err != nil && err != io.EOF {
+		if _, err = file.ReadAt(data, startSize); err != nil && err != io.EOF {
 			return err
 		}
-		if size, err = uploadChunk(host, upfilename, bytes.NewReader(data), sinfo.Size, sinfo.Size-1+int64(size)); err != nil {
+
+		if size, err = uploadChunk(host, upfilename, bytes.NewReader(data), startSize, startSize-1+int64(size)); err != nil {
 			return err
 		}
-		upsize += size
+
+		startSize += size
+		upSize += size
 	}
-	log.Printf("upload success, size: %d", upsize)
+
+	log.Printf("upload success, size: %d", upSize)
 	return nil
 }
 
@@ -77,4 +96,15 @@ func uploadChunk(host, filename string, body io.Reader, start, end int64) (int64
 		err = errors.New(buf.String())
 	}
 	return size, err
+}
+
+func infoSize(host, upfilename string) (int64, error) {
+	sinfo, err := Info(host, upfilename)
+	if err != nil && err != os.ErrExist {
+		return 0, err
+	}
+	if sinfo == nil {
+		return 0, errors.New("info data nil")
+	}
+	return sinfo.Size, nil
 }

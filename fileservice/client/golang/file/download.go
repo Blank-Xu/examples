@@ -8,43 +8,44 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
 )
 
 func Download(host, filename string) error {
-	file, err := os.OpenFile(filepath.Join(workDir, filename), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	var lfilename = filepath.Join(workDir, strconv.FormatInt(time.Now().UnixNano(), 10))
+
+	file, err := os.OpenFile(lfilename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
 		return err
 	}
 
-	sinfo, err := Info(host, filename)
+	sSize, err := infoSize(host, filename)
 	if err != nil {
 		return err
 	}
 
 	var downSize int64
 	for {
-		info, err := file.Stat()
-		if err != nil {
-			return err
-		}
+		info, _ := file.Stat()
 
-		var end = sinfo.Size - info.Size()
-		if end == 0 {
+		var size = sSize - info.Size()
+		if size == 0 {
 			break
-		} else if end < 0 {
-			return fmt.Errorf("local file size: %d, server file size: %d", info.Size(), sinfo.Size)
-		} else if end > chunkSize {
-			end = chunkSize
+		} else if size < 0 {
+			return fmt.Errorf("local file size: %d, server file size: %d", info.Size(), sSize)
+		} else if size > chunkSize {
+			size = chunkSize
 		}
 
-		if end, err = downloadChunk(host, filename, file, info.Size(), info.Size()+end-1); err != nil {
+		if size, err = downloadChunk(host, filename, file, info.Size(), info.Size()+size-1); err != nil {
 			return err
 		}
 
-		downSize += end
+		downSize += size
 	}
-	log.Printf("download filename[%s] success, size:%d\n", filename, downSize)
 
+	log.Printf("download filename[%s] success, size:%d, local filename: %s\n", filename, downSize, lfilename)
 	return nil
 }
 

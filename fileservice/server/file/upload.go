@@ -17,11 +17,6 @@ func Upload() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost, http.MethodPut:
-			uploadLimit <- struct{}{}
-			defer func() {
-				<-uploadLimit
-			}()
-
 			// auth
 
 			var filename = r.FormValue("filename")
@@ -87,6 +82,11 @@ func Upload() http.HandlerFunc {
 				log.Println("upload failed, err: range start invalid")
 				return
 			}
+
+			uploadLimit <- struct{}{}
+			defer func() {
+				<-uploadLimit
+			}()
 
 			if _, err = file.Seek(start, 2); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
