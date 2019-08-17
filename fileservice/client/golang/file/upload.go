@@ -68,7 +68,7 @@ func Upload(host, filename string, safety ...bool) error {
 		upSize += size
 	}
 
-	log.Printf("upload success, size: %d", upSize)
+	log.Printf("upload file[%s] success, upfilename: %s size: %d", filename, upfilename, upSize)
 	return nil
 }
 

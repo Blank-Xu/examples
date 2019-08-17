@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	action   = flag.String("a", "d", "upload")
+	action   = flag.String("a", "d", "action:[d u s i]")
 	host     = flag.String("h", "http://127.0.0.1:8080", "file server host")
 	filename = flag.String("f", "1.wmv", "filename")
 	count    = flag.Int("c", 1, "benchmark count")
@@ -33,11 +33,13 @@ func main() {
 		go func() {
 			var err error
 			switch *action {
-			case "d":
+			case "d": // 下载
 				err = file.Download(*host, *filename)
-			case "u":
+			case "u": // 上传
 				err = file.Upload(*host, *filename)
-			case "i":
+			case "s": // 删除
+				err = file.Delete(*host, *filename)
+			case "i": // 获取文件信息，包含md5值
 				_, err = file.Info(*host, *filename, true)
 			default:
 				err = fmt.Errorf("not support action: %s", *action)
