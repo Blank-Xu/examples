@@ -11,8 +11,6 @@ uses
   System.Net.HttpClientComponent;
 
 type
-  TReceiveDataEvent = procedure(const Sender: TObject; AContentLength: Int64; AReadCount: Int64; var Abort: Boolean) of object;
-
   TFileService = class(TNetHTTPClient)
   private
     const
@@ -28,45 +26,63 @@ type
     var
       FUploadChunkSize: Int64;
       FDownloadChunkSize: Int64;
-//			FHttpClient: TNetHTTPClient;
       FResponse: IHTTPResponse;
       FHost: string;
       FWorkDir: string;
+      FFileName: string;
       FError: string;
-      FStop: Boolean;
     procedure SetWorkDir(const dir: string);
+    function GetUrlUpload(): string;
+    function GetUrlDownload(): string;
 			// »ñÈ¡×´Ì¬
-			//		procedure FProcessing(const Sender: TObject; AContentLength, AReadCount: Int64; var Abort: Boolean);
     function GetStatusCode: Integer;
-    function DownloadChunk(fileStream: TFileStream; const url: string; const offset, size: Int64): Boolean;
-    function UploadChunk(fileStream: TFileStream; const url: string; const offset, size: Int64): Boolean;
   public
-    constructor Create(Host: string);
+    constructor Create(AOwner: TComponent); overload;
+    constructor Create(const cHost: string); overload;
+    constructor Create(const cHost, cFileName: string); overload;
     destructor Destroy; override;
-    property Host: string read FHost write FHost;
-    property WorkDir: string read FWorkDir write SetWorkDir;
     property UploadChunkSize: Int64 read FUploadChunkSize write FUploadChunkSize;
     property DownloadChunkSize: Int64 read FDownloadChunkSize write FDownloadChunkSize;
+    property Host: string read FHost write FHost;
+    property WorkDir: string read FWorkDir write SetWorkDir;
+    property FileName: string read FFileName write FFileName;
+    property UrlUpload: string read GetUrlUpload;
+    property UrlDownload: string read GetUrlDownload;
     property Response: IHTTPResponse read FResponse;
     property StatusCode: Integer read GetStatusCode;
     property Error: string read FError;
 		// for get file size and mod time
-    function InfoHead(const fileName: string; var size: Int64): Boolean;
-    function Info(const fileName: string; fileInfoStream: TMemoryStream; md5: Boolean = False): Boolean;
-    function DownloadFile(const fileName: string): Boolean;
-    function UploadFile(const fileName: string): Boolean;
-    function DeleteFile(const fileName: string): Boolean;
+    function InfoHead(const FileName: string; var Size: Int64): Boolean;
+    function Info(const FileName: string; fileInfoStream: TMemoryStream; Md5: Boolean = False): Boolean;
+    function DownloadFile(const FileName: string): Boolean;
+    function UploadFile(const FileName: string): Boolean;
+    function DeleteFile(const FileName: string): Boolean;
+    function DownloadChunk(FileStream: TFileStream; const url: string; const Offset, Size: Int64): Boolean;
+    function UploadChunk(FileStream: TFileStream; const url: string; const Offset, Size: Int64): Boolean;
   end;
 
 implementation
 
 { TFileService }
 
-constructor TFileService.Create(host: string);
+constructor TFileService.Create(const cHost, cFileName: string);
+begin
+  Create(nil);
+
+  FHost := cHost;
+  FFileName := cFileName;
+end;
+
+constructor TFileService.Create(const cHost: string);
+begin
+  Create(nil);
+
+  FHost := cHost;
+end;
+
+constructor TFileService.Create(AOwner: TComponent);
 begin
   inherited Create(nil);
-
-  FHost := host;
 
   FUploadChunkSize := 4 * 1024 * 1024;
   FDownloadChunkSize := 4 * 1024 * 1024;
@@ -134,7 +150,7 @@ begin
     try
       fileStream.Position := offset;
 
-			FResponse := Self.Get(url, RespStream, AHeaders);
+      FResponse := Self.Get(url, RespStream, AHeaders);
       if (FResponse.StatusCode = 200) or (FResponse.StatusCode = 206) then
       begin
         fileStream.CopyFrom(RespStream, 0);
@@ -204,7 +220,7 @@ begin
         end;
 
         if (totalSize - FStream.Size) = 0 then
-					Exit(True);
+          Exit(True);
       except
         on E: Exception do
           FError := E.Message;
@@ -220,6 +236,16 @@ function TFileService.GetStatusCode: Integer;
 begin
   if Assigned(FResponse) then
     Result := FResponse.StatusCode;
+end;
+
+function TFileService.GetUrlDownload: string;
+begin
+  Result := Format(URL_DOWNLOAD, [FHost, FFileName])
+end;
+
+function TFileService.GetUrlUpload: string;
+begin
+  Result := Format(URL_UPLOAD, [FHost, FFileName])
 end;
 
 function TFileService.Info(const fileName: string; fileInfoStream: TMemoryStream; md5: Boolean = False): Boolean;
@@ -244,7 +270,7 @@ begin
   end;
 end;
 
-function TFileService.InfoHead(const fileName: string; var size: Int64): Boolean;
+function TFileService.InfoHead(const fileName: string; var Size: Int64): Boolean;
 var
   url: string;
 begin
@@ -255,7 +281,7 @@ begin
     FResponse := Self.Head(url, nil);
     if FResponse.StatusCode = 200 then
     begin
-      size := FResponse.ContentLength;
+      Size := FResponse.ContentLength;
       Exit(True);
     end
     else

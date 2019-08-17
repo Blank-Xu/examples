@@ -24,7 +24,6 @@ object frmClient: TfrmClient
     Align = alClient
     ScrollBars = ssVertical
     TabOrder = 0
-    ExplicitHeight = 377
   end
   object pnl1: TPanel
     Left = 0
@@ -34,14 +33,14 @@ object frmClient: TfrmClient
     Align = alTop
     Caption = 'pnl1'
     TabOrder = 1
-    object btn1: TButton
+    object btnInfoHead: TButton
       Left = 575
       Top = 4
       Width = 75
       Height = 25
       Caption = 'info_head'
       TabOrder = 0
-      OnClick = btn1Click
+      OnClick = btnInfoHeadClick
     end
     object edtHost: TEdit
       Left = 1
@@ -59,32 +58,32 @@ object frmClient: TfrmClient
       Text = 'http://127.0.0.1:8080'
       ExplicitHeight = 27
     end
-    object btn2: TButton
+    object btnInfo: TButton
       Left = 656
       Top = 4
       Width = 75
       Height = 25
       Caption = 'info'
       TabOrder = 2
-      OnClick = btn2Click
+      OnClick = btnInfoClick
     end
-    object btn3: TButton
+    object btnDownload: TButton
       Left = 737
       Top = 4
       Width = 75
       Height = 25
       Caption = 'download'
       TabOrder = 3
-      OnClick = btn3Click
+      OnClick = btnDownloadClick
     end
-    object btn4: TButton
+    object btnUpload: TButton
       Left = 818
       Top = 4
       Width = 75
       Height = 25
       Caption = 'upload'
       TabOrder = 4
-      OnClick = btn4Click
+      OnClick = btnUploadClick
     end
     object edtFilename: TEdit
       Left = 289

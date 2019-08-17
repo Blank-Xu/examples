@@ -8,6 +8,7 @@ uses
   System.SysUtils,
   System.Variants,
   System.Classes,
+  System.IOUtils,
   Vcl.Graphics,
   Vcl.Controls,
   Vcl.Forms,
@@ -21,31 +22,35 @@ type
   TfrmClient = class(TForm)
     mmo: TMemo;
     pnl1: TPanel;
-    btn1: TButton;
+    btnInfoHead: TButton;
     edtHost: TEdit;
-    btn2: TButton;
-    btn3: TButton;
-    btn4: TButton;
+    btnInfo: TButton;
+    btnDownload: TButton;
+    btnUpload: TButton;
     edtFilename: TEdit;
     pb: TProgressBar;
-    procedure btn1Click(Sender: TObject);
-    procedure btn2Click(Sender: TObject);
+    procedure btnInfoHeadClick(Sender: TObject);
+    procedure btnInfoClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure btn3Click(Sender: TObject);
+    procedure btnDownloadClick(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure btn4Click(Sender: TObject);
+    procedure btnUploadClick(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
   private
+    const
+      FWorkDir = 'files';
     var
       FCanClose: Boolean;
       FFileService: TFileService;
       FTotalSize: Int64;
       FReadSize: Int64;
-      FReadPosition: Boolean;
+      FNeedProcess: Boolean;
+      FIsDownload: Boolean;
     procedure StartProcessing;
     procedure EndProcessing;
     procedure AddLine;
-    procedure ReceiveData(const Sender: TObject; AContentLength, AReadCount: Int64; var Abort: Boolean);
+    procedure SetTotalSize(const size: Int64; const Download: Boolean = True);
+    procedure DownloadData(const Sender: TObject; AContentLength, AReadCount: Int64; var Abort: Boolean);
   public
     { Public declarations }
   end;
@@ -66,7 +71,7 @@ begin
   mmo.Lines.Add('----------------------------------');
 end;
 
-procedure TfrmClient.btn1Click(Sender: TObject);
+procedure TfrmClient.btnInfoHeadClick(Sender: TObject);
 begin
   StartProcessing;
 
@@ -78,7 +83,7 @@ begin
   EndProcessing;
 end;
 
-procedure TfrmClient.btn2Click(Sender: TObject);
+procedure TfrmClient.btnInfoClick(Sender: TObject);
 var
   Stream: TStringStream;
 begin
@@ -101,58 +106,158 @@ begin
   EndProcessing;
 end;
 
-procedure TfrmClient.btn3Click(Sender: TObject);
+procedure TfrmClient.btnDownloadClick(Sender: TObject);
 var
-  msg: string;
+  fStream: TFileStream;
+  url, Msg: string;
+  sSize: Int64;
+  size: Int64;
+  FileName, LocalFileName: string;
 begin
   StartProcessing;
+  FileName := edtFilename.Text;
+  LocalFileName := TPath.Combine(FWorkDir, FileName);
+  FFileService.FileName := FileName;
+  sSize := 0;
+  try
+    if FFileService.InfoHead(FileName, sSize) or (FFileService.StatusCode = 404) then
+    begin
+      SetTotalSize(sSize);
+      try
+        if FileExists(LocalFileName) then
+          fStream := TFileStream.Create(LocalFileName, fmOpenWrite or fmShareExclusive)
+        else
+          fStream := TFileStream.Create(LocalFileName, fmCreate or fmShareExclusive);
+					// 严格比较可以对比两个文件的md5
+        if (sSize - fStream.Size) = 0 then
+        begin
+          Msg := 'file have been download';
+        end
+        else
+        begin
+          url := FFileService.UrlDownload;
+          while (sSize - fStream.Size) > 0 do
+          begin
+            size := sSize - fStream.Size;
+            if size = 0 then
+            begin
+              Break;
+            end
+            else if size < 0 then
+            begin
+              Msg := 'server file size error';
+              Break;
+            end
+            else if size > FFileService.DownloadChunkSize then
+              size := FFileService.DownloadChunkSize;
 
-  if FFileService.DownloadFile(edtFilename.Text) then
-  begin
-    mmo.Lines.Add(Format('download file[%s] sucess', [edtFilename.Text]));
-  end
-  else
-    mmo.Lines.Add(Format('code: %d, msg: %s', [FFileService.StatusCode, FFileService.Error]));
+            if not FFileService.DownloadChunk(fStream, url, fStream.Size, fStream.Size + size - 1) then
+            begin
+              Msg := FFileService.Error;
+              Break;
+            end;
+          end;
+          Msg := Format('download file[%s] success', [FileName]);
+        end;
+      finally
+        if Assigned(fStream) then
+          FreeAndNil(fStream);
+      end;
+    end
+    else
+      Msg := FFileService.Error;
+  except
+    on E: Exception do
+      Msg := E.Message;
+  end;
+  mmo.Lines.Add(Msg);
 
   EndProcessing;
 end;
 
-procedure TfrmClient.btn4Click(Sender: TObject);
+procedure TfrmClient.btnUploadClick(Sender: TObject);
 var
-	fs: TFileService;
-	msg: string;
+  fStream: TFileStream;
+  url, Msg: string;
+  sSize: Int64;
+  size: Int64;
+  FileName, LocalFileName: string;
 begin
-	StartProcessing;
+  StartProcessing;
+  FileName := edtFilename.Text;
+  LocalFileName := TPath.Combine(FWorkDir, FileName);
+  FFileService.FileName := FileName;
+  if not FileExists(LocalFileName) then
+    Msg := 'file not found'
+  else
+  begin
+    sSize := 0;
+    try
+      if FFileService.InfoHead(FileName, sSize) or (FFileService.StatusCode = 404) then
+      begin
+        try
+          fStream := TFileStream.Create(LocalFileName, fmOpenRead or fmShareExclusive);
+          FTotalSize := fStream.Size;
+          SetTotalSize(FTotalSize);
+					// 严格比较可以对比两个文件的md5
+          if (FTotalSize - sSize) = 0 then
+          begin
+            Msg := 'server file has been upload';
+          end
+          else
+          begin
+            url := FFileService.UrlUpload;
+            while (FTotalSize - sSize) > 0 do
+            begin
+              size := FTotalSize - sSize;
+              if size = 0 then
+              begin
+                Break;
+              end
+              else if size < 0 then
+              begin
+                Msg := 'server file size error';
+                Break;
+              end
+              else if size > FFileService.UploadChunkSize then
+                size := FFileService.UploadChunkSize;
 
-	TThread.CreateAnonymousThread(
-		procedure
-		var
-			fs: TFileService;
-		begin
-      if FFileService.UploadFile(edtFilename.Text) then
-        msg := Format('upload file[%s] sucess', [edtFilename.Text])
+              if not FFileService.UploadChunk(fStream, url, sSize, sSize + size - 1) then
+              begin
+                Msg := FFileService.Error;
+                Break;
+              end;
+              Inc(sSize, size);
+
+              if FNeedProcess then
+              begin
+                pb.Position := sSize;
+                pb.Refresh;
+              end;
+            end;
+            Msg := Format('upload file[%s] success', [FileName]);
+          end;
+        finally
+          if Assigned(fStream) then
+            FreeAndNil(fStream);
+        end;
+      end
       else
-        msg := Format('code: %d, msg: %s', [FFileService.StatusCode, FFileService.Error]);
-
-      TThread.Synchronize(nil,
-        procedure
-        begin
-					mmo.Lines.Add(msg)
-        end)
-		end).Start;
-//	if FFileService.UploadFile(edtFilename.Text) then
-//	begin
-//		mmo.Lines.Add(Format('upload file[%s] sucess', [edtFilename.Text]));
-//	end
-//	else
-//		mmo.Lines.Add(Format('code: %d, msg: %s', [FFileService.StatusCode, FFileService.Error]));
+        Msg := FFileService.Error;
+    except
+      on E: Exception do
+        Msg := E.Message;
+    end;
+  end;
+  mmo.Lines.Add(Msg);
 
   EndProcessing;
 end;
 
 procedure TfrmClient.EndProcessing;
 begin
-  FReadPosition := False;
+  FTotalSize := 0;
+  FNeedProcess := False;
   FCanClose := True;
 end;
 
@@ -166,9 +271,9 @@ begin
   ReportMemoryLeaksOnShutdown := True;
   FCanClose := True;
 
-  FFileService := TFileService.Create('');
-  FFileService.WorkDir := 'files';
-  FFileService.OnReceiveData := ReceiveData;
+  FFileService := TFileService.Create(nil);
+  FFileService.WorkDir := FWorkDir;
+  FFileService.OnReceiveData := DownloadData;
 end;
 
 procedure TfrmClient.FormDestroy(Sender: TObject);
@@ -177,15 +282,27 @@ begin
     FreeAndNil(FFileService);
 end;
 
-procedure TfrmClient.ReceiveData(const Sender: TObject; AContentLength, AReadCount: Int64; var Abort: Boolean);
+procedure TfrmClient.DownloadData(const Sender: TObject; AContentLength, AReadCount: Int64; var Abort: Boolean);
 begin
-  if FReadPosition then
+  if FIsDownload and FNeedProcess then
   begin
     if AContentLength = AReadCount then
       Inc(FReadSize, AReadCount);
     pb.Position := FReadSize + AReadCount;
     pb.Refresh;
   end;
+end;
+
+procedure TfrmClient.SetTotalSize(const Size: Int64; const Download: Boolean = True);
+begin
+  FTotalSize := Size;
+  if FTotalSize > 10 * 1024 * 1024 then
+  begin
+    pb.Max := FTotalSize;
+    FNeedProcess := True;
+  end;
+  if Download then
+    FIsDownload := True;
 end;
 
 procedure TfrmClient.StartProcessing;
@@ -196,12 +313,6 @@ begin
   pb.Position := 0;
 
   FReadSize := 0;
-
-  if FTotalSize > 10 * 1024 * 1024 then
-  begin
-    pb.Max := FTotalSize;
-    FReadPosition := True;
-  end;
 
   AddLine;
 end;
