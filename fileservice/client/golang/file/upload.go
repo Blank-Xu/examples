@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 )
 
 func Upload(host, filename string, safety ...bool) error {
@@ -25,11 +24,12 @@ func Upload(host, filename string, safety ...bool) error {
 	}
 
 	var (
-		startSize  int64
-		upfilename = strconv.FormatInt(time.Now().UnixNano(), 10)
+		startSize int64
+
+		upfilename = getRandom()
 	)
 	if !safeUpload {
-		if startSize, err = InfoHead(host, upfilename); err != nil {
+		if _, startSize, err = InfoHead(host, upfilename); err != nil {
 			return err
 		}
 	}
@@ -41,7 +41,7 @@ func Upload(host, filename string, safety ...bool) error {
 
 	for {
 		if safeUpload {
-			if startSize, err = InfoHead(host, upfilename); err != nil {
+			if _, startSize, err = InfoHead(host, upfilename); err != nil {
 				return err
 			}
 		}

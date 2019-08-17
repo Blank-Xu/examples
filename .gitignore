@@ -69,6 +69,8 @@ __recovery/
 *.stat
 
 files/
+logs/
+temp
 
 fileserver
 fileclient

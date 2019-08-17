@@ -1,19 +1,34 @@
-run_mode: dev
+server: 
+  name: fileserver
+  ip:
+  port: 8080
+  read_timeout: 60 # 单位：s
+  write_timeout: 60
+  idle_timeout: 120
+  max_conn_per_host: 300 # 最大连接数
+  max_idle_conn: 200
+  max_idle_conn_per_host: 100
 
-ip:
-port: 8080
+file_config:
+  work_dir: files
+  upload_limit: 20 # 并发上传人数限制
+  upload_max_size: 200 # 单位：MB
+  upload_chunk_size: 4 # 单位：MB
+  download_limit: 50 # 并发下载人数限制
+  download_chunk_size: 4 # 单位：MB
+  file_md5_limit: 50 # 限制获取md5，防止内存占满
 
-work_dir: files
-
-# 上传人数限制
-upload_limit: 20
-# 单位：MB
-upload_max_size: 200
-upload_chunk_size: 4
-
-# 下载人数限制
-download_limit: 100
-download_chunk_size: 4
-
-# 限制获取md5，防止内存占满
-file_md5_limit: 100
+time_zone:
+  name: UTC
+  offset: 8 # 时区
+  
+log:
+  work_dir: logs
+  write_file: true
+  filename: fileserver_%Y%m%d%H.log
+  linkname: fileserver
+  time_format: 2006-01-02 15:04:05
+  report_caller: true
+  max_age: 60 # 保存天数，单位：天
+  rotation_time: 1 # 分割时间，单位：小时
+  json_format: true

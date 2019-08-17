@@ -2,27 +2,38 @@ package file
 
 import (
 	"bytes"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
-	"time"
 )
 
+func getRandom() (str string) {
+	for i := 0; i < 15; i++ {
+		n, _ := rand.Int(rand.Reader, big.NewInt(100))
+		str += fmt.Sprintf("%d", n)
+	}
+	return
+}
+
 func Download(host, filename string) error {
-	var lfilename = filepath.Join(workDir, strconv.FormatInt(time.Now().UnixNano(), 10))
+	var lfilename = filepath.Join(workDir, getRandom())
 
 	file, err := os.OpenFile(lfilename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 	if err != nil {
 		return err
 	}
 
-	sSize, err := InfoHead(host, filename)
+	statusCode, sSize, err := InfoHead(host, filename)
 	if err != nil {
 		return err
+	}
+	if statusCode == http.StatusNotFound {
+		return errors.New("server file not found")
 	}
 
 	var downSize int64
@@ -45,7 +56,7 @@ func Download(host, filename string) error {
 		downSize += size
 	}
 
-	log.Printf("download filename[%s] success, size:%d, local filename: %s\n", filename, downSize, lfilename)
+	log.Printf("download filename[%s] success, size:%d, local filename: %s", filename, downSize, lfilename)
 	return nil
 }
 

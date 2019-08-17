@@ -11,7 +11,9 @@ uses
   System.Net.HttpClientComponent;
 
 type
-  TFileService = class
+  TReceiveDataEvent = procedure(const Sender: TObject; AContentLength: Int64; AReadCount: Int64; var Abort: Boolean) of object;
+
+  TFileService = class(TNetHTTPClient)
   private
     const
       CONNECTION_TIMEOUT = 30;
@@ -22,15 +24,19 @@ type
       URL_INFO_MD5 = '%s/info?filename=%s&md5=true';
       URL_UPLOAD = '%s/upload?filename=%s';
       URL_DOWNLOAD = '%s/download?filename=%s';
+      URL_DELETE = '%s/delete?filename=%s';
     var
       FUploadChunkSize: Int64;
       FDownloadChunkSize: Int64;
-      FHttpClient: TNetHTTPClient;
+//			FHttpClient: TNetHTTPClient;
       FResponse: IHTTPResponse;
       FHost: string;
       FWorkDir: string;
       FError: string;
+      FStop: Boolean;
     procedure SetWorkDir(const dir: string);
+			// »ñÈ¡×´Ì¬
+			//		procedure FProcessing(const Sender: TObject; AContentLength, AReadCount: Int64; var Abort: Boolean);
     function GetStatusCode: Integer;
     function DownloadChunk(fileStream: TFileStream; const url: string; const offset, size: Int64): Boolean;
     function UploadChunk(fileStream: TFileStream; const url: string; const offset, size: Int64): Boolean;
@@ -48,7 +54,8 @@ type
     function InfoHead(const fileName: string; var size: Int64): Boolean;
     function Info(const fileName: string; fileInfoStream: TMemoryStream; md5: Boolean = False): Boolean;
     function DownloadFile(const fileName: string): Boolean;
-    function UploadFile(fileName: string): Boolean;
+    function UploadFile(const fileName: string): Boolean;
+    function DeleteFile(const fileName: string): Boolean;
   end;
 
 implementation
@@ -57,51 +64,87 @@ implementation
 
 constructor TFileService.Create(host: string);
 begin
+  inherited Create(nil);
+
   FHost := host;
 
   FUploadChunkSize := 4 * 1024 * 1024;
   FDownloadChunkSize := 4 * 1024 * 1024;
 
-  FHttpClient := TNetHTTPClient.Create(nil);
-  FHttpClient.ConnectionTimeout := CONNECTION_TIMEOUT;
-  FHttpClient.ResponseTimeout := RESPONSE_TIMEOUT;
-  FHttpClient.CustomHeaders['Keep-Alive'] := '60';
+  HandleRedirects := True;
+  UserAgent := 'client 1.0';
+  ConnectionTimeout := CONNECTION_TIMEOUT;
+  ResponseTimeout := RESPONSE_TIMEOUT;
+  CustomHeaders['Keep-Alive'] := '60';
+end;
+
+function TFileService.DeleteFile(const fileName: string): Boolean;
+var
+  RespStream: TMemoryStream;
+  SStream: TStringStream;
+  url: string;
+begin
+  Result := False;
+  url := Format(URL_DELETE, [FHost, fileName]);
+  RespStream := TMemoryStream.Create;
+  try
+    try
+      FResponse := Self.Post(url, nil, RespStream, nil);
+      if FResponse.StatusCode = 200 then
+        Exit(True)
+      else if Assigned(RespStream) then
+      begin
+        SStream := TStringStream.Create;
+        try
+          SStream.LoadFromStream(RespStream);
+          FError := SStream.DataString;
+        finally
+          SStream.Free;
+        end;
+      end;
+      FError := 'file not found';
+    except
+      on E: Exception do
+        FError := E.Message;
+    end;
+  finally
+    if Assigned(RespStream) then
+      FreeAndNil(RespStream);
+  end;
 end;
 
 destructor TFileService.Destroy;
 begin
-  if Assigned(FHttpClient) then
-    FreeAndNil(FHttpClient);
   inherited;
 end;
 
 function TFileService.DownloadChunk(fileStream: TFileStream; const url: string; const offset, size: Int64): Boolean;
 var
   AHeaders: TNetHeaders;
+  RespStream: TMemoryStream;
   SStream: TStringStream;
-  MStream: TMemoryStream;
 begin
   Result := False;
 
   SetLength(AHeaders, Length(AHeaders) + 1);
   AHeaders[High(AHeaders)] := TNameValuePair.Create('Range', Format(RANGE_BYTES, [offset, size]));
 
-  MStream := TMemoryStream.Create;
+  RespStream := TMemoryStream.Create;
   try
     try
       fileStream.Position := offset;
 
-      FResponse := FHttpClient.Get(url, MStream, AHeaders);
+			FResponse := Self.Get(url, RespStream, AHeaders);
       if (FResponse.StatusCode = 200) or (FResponse.StatusCode = 206) then
       begin
-        fileStream.CopyFrom(MStream, 0);
+        fileStream.CopyFrom(RespStream, 0);
         Exit(True);
       end
-      else
+      else if Assigned(RespStream) then
       begin
         SStream := TStringStream.Create;
         try
-          SStream.LoadFromStream(MStream);
+          SStream.LoadFromStream(RespStream);
           FError := SStream.DataString;
         finally
           if Assigned(SStream) then
@@ -113,14 +156,14 @@ begin
         FError := E.Message
     end;
   finally
-    if Assigned(MStream) then
-      FreeAndNil(MStream);
+    if Assigned(RespStream) then
+      FreeAndNil(RespStream);
   end;
 end;
 
 function TFileService.DownloadFile(const fileName: string): Boolean;
 var
-  fStream: TFileStream;
+  FStream: TFileStream;
   totalSize, size: Int64;
   url, lFileName: string;
 begin
@@ -136,16 +179,16 @@ begin
     try
       try
         if FileExists(lFileName) then
-          fStream := TFileStream.Create(lFileName, fmOpenWrite or fmShareExclusive)
+          FStream := TFileStream.Create(lFileName, fmOpenWrite or fmShareExclusive)
         else
-          fStream := TFileStream.Create(lFileName, fmCreate or fmShareExclusive);
+          FStream := TFileStream.Create(lFileName, fmCreate or fmShareExclusive);
 
-        if (totalSize - fStream.Size) = 0 then
+        if (totalSize - FStream.Size) = 0 then
           Exit(True);
 
-        while (totalSize - fStream.Size) > 0 do
+        while (totalSize - FStream.Size) > 0 do
         begin
-          size := totalSize - fStream.Size;
+          size := totalSize - FStream.Size;
           if size = 0 then
             Exit(True)
           else if size < 0 then
@@ -156,19 +199,19 @@ begin
           else if size > FDownloadChunkSize then
             size := FDownloadChunkSize;
 
-          if not DownloadChunk(fStream, url, fStream.Size, fStream.Size + size - 1) then
+          if not DownloadChunk(FStream, url, FStream.Size, FStream.Size + size - 1) then
             Exit;
         end;
 
-        if (totalSize - fStream.Size) = 0 then
-          Exit(True);
+        if (totalSize - FStream.Size) = 0 then
+					Exit(True);
       except
         on E: Exception do
           FError := E.Message;
       end;
     finally
-      if Assigned(fStream) then
-        FreeAndNil(fStream);
+      if Assigned(FStream) then
+        FreeAndNil(FStream);
     end;
   end;
 end;
@@ -192,7 +235,7 @@ begin
 
   url := Format(url, [FHost, fileName]);
   try
-    FResponse := FHttpClient.Get(url, fileInfoStream, nil);
+    FResponse := Self.Get(url, fileInfoStream, nil);
     if FResponse.StatusCode = 200 then
       Exit(True);
   except
@@ -206,16 +249,17 @@ var
   url: string;
 begin
   Result := False;
+
   url := Format(URL_INFO_HEAD, [FHost, fileName]);
   try
-    FResponse := FHttpClient.Head(url, nil);
+    FResponse := Self.Head(url, nil);
     if FResponse.StatusCode = 200 then
     begin
       size := FResponse.ContentLength;
       Exit(True);
     end
     else
-      FError := 'file not found';
+      FError := 'server file not found';
   except
     on E: Exception do
       FError := E.Message;
@@ -249,7 +293,7 @@ begin
       MStream.CopyFrom(fileStream, size - offset + 1);
       MStream.Position := 0;
 
-      FResponse := FHttpClient.Post(url, MStream, RespStream, AHeaders);
+      FResponse := Self.Post(url, MStream, RespStream, AHeaders);
       if (FResponse.StatusCode = 200) or (FResponse.StatusCode = 206) then
       begin
         Exit(True);
@@ -277,7 +321,7 @@ begin
   end;
 end;
 
-function TFileService.UploadFile(fileName: string): Boolean;
+function TFileService.UploadFile(const fileName: string): Boolean;
 var
   fStream: TFileStream;
   sSize, size: Int64;

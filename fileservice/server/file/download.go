@@ -1,15 +1,22 @@
 package file
 
 import (
+	"fmt"
 	"framework/fileservice/server/config"
-	"log"
 	"net/http"
 	"path/filepath"
+	"time"
 )
 
 func Download() http.HandlerFunc {
-	var downloadLimit = make(chan struct{}, config.Default.DownloadLimit)
+	var downloadLimit = make(chan struct{}, config.Default.FileConfig.DownloadLimit)
 	return func(w http.ResponseWriter, r *http.Request) {
+		var (
+			now = time.Now()
+			log = newLogEntry(r)
+		)
+		log.Info("client request")
+
 		if r.Method != http.MethodGet {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
@@ -21,7 +28,7 @@ func Download() http.HandlerFunc {
 			return
 		}
 
-		log.Printf("download request filename: %s\n", filename)
+		log.Infof("download request filename: %s", filename)
 
 		// check auth
 
@@ -30,6 +37,9 @@ func Download() http.HandlerFunc {
 			<-downloadLimit
 		}()
 
-		http.ServeFile(w, r, filepath.Join(config.Default.WorkDir, filename))
+		http.ServeFile(w, r, filepath.Join(config.Default.FileConfig.WorkDir, filename))
+
+		log.WithField("latency", fmt.Sprintf("%v", time.Since(now))).
+			Info("done")
 	}
 }

@@ -11,6 +11,7 @@ object frmClient: TfrmClient
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
@@ -19,10 +20,11 @@ object frmClient: TfrmClient
     Left = 0
     Top = 35
     Width = 897
-    Height = 377
+    Height = 349
     Align = alClient
     ScrollBars = ssVertical
     TabOrder = 0
+    ExplicitHeight = 377
   end
   object pnl1: TPanel
     Left = 0
@@ -97,8 +99,20 @@ object frmClient: TfrmClient
       Font.Style = []
       ParentFont = False
       TabOrder = 5
-      Text = 'abc.txt'
+      Text = '1.wmv'
       ExplicitHeight = 27
     end
+  end
+  object pb: TProgressBar
+    Left = 0
+    Top = 384
+    Width = 897
+    Height = 28
+    Align = alBottom
+    ParentShowHint = False
+    Smooth = True
+    SmoothReverse = True
+    ShowHint = True
+    TabOrder = 2
   end
 end

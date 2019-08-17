@@ -2,18 +2,25 @@ package file
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"framework/fileservice/server/config"
 	"framework/fileservice/server/utils"
 )
 
 func Info() http.HandlerFunc {
-	var md5Limit = make(chan struct{}, config.Default.FileMd5Limit)
+	var md5Limit = make(chan struct{}, config.Default.FileConfig.FileMd5Limit)
 	return func(w http.ResponseWriter, r *http.Request) {
+		var (
+			now = time.Now()
+			log = newLogEntry(r)
+		)
+		log.Info("client request")
+
 		var filename = r.FormValue("filename")
 		if len(filename) == 0 {
 			w.WriteHeader(http.StatusBadGateway)
@@ -22,12 +29,12 @@ func Info() http.HandlerFunc {
 
 		switch r.Method {
 		case http.MethodHead:
-			http.ServeFile(w, r, filepath.Join(config.Default.WorkDir, filename))
+			http.ServeFile(w, r, filepath.Join(config.Default.FileConfig.WorkDir, filename))
 
 		case http.MethodGet:
-			log.Printf("info request filename: %s\n", filename)
+			log.Infof("info request filename: %s", filename)
 
-			var lfilename = filepath.Join(config.Default.WorkDir, filename)
+			var lfilename = filepath.Join(config.Default.FileConfig.WorkDir, filename)
 			file, err := os.Stat(lfilename)
 			if err != nil {
 				if os.IsNotExist(err) {
@@ -55,15 +62,19 @@ func Info() http.HandlerFunc {
 				md5 = utils.Md5File(mfile)
 			}
 
-			var resp = infoResponse{
-				Name:              file.Name(),
-				Size:              file.Size(),
-				ModTime:           file.ModTime().Unix(),
-				Md5:               md5,
-				UploadMaxSize:     config.Default.UploadMaxSize,
-				UploadChunkSize:   config.Default.UploadChunkSize,
-				DownloadChunkSize: config.Default.DownloadChunkSize,
-			}
+			var (
+				cfg = config.Default.FileConfig
+
+				resp = infoResponse{
+					Name:              file.Name(),
+					Size:              file.Size(),
+					ModTime:           file.ModTime().Unix(),
+					Md5:               md5,
+					UploadMaxSize:     cfg.UploadMaxSize,
+					UploadChunkSize:   cfg.UploadChunkSize,
+					DownloadChunkSize: cfg.DownloadChunkSize,
+				}
+			)
 
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			w.WriteHeader(http.StatusOK)
@@ -72,8 +83,12 @@ func Info() http.HandlerFunc {
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(err.Error()))
 
-				log.Printf("info json encode failed, err: %v\n", err)
+				log.Errorf("info json encode failed, err: %v", err)
+				return
 			}
+
+			log.WithField("latency", fmt.Sprintf("%v", time.Since(now))).
+				Info("done")
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
