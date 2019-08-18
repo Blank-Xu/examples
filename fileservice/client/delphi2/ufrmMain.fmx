@@ -1,0 +1,121 @@
+object frmMain: TfrmMain
+  Left = 0
+  Top = 0
+  Caption = 'Main'
+  ClientHeight = 480
+  ClientWidth = 879
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  DesignerMasterStyle = 0
+  object pnl1: TPanel
+    Align = MostTop
+    Size.Width = 879.000000000000000000
+    Size.Height = 33.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object edtHost: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      Align = MostLeft
+      TabOrder = 0
+      Text = 'http://127.0.0.1:8080'
+      TextSettings.Font.Size = 14.000000000000000000
+      TextSettings.Font.StyleExt = {00060000000000000004000000}
+      Size.Width = 233.000000000000000000
+      Size.Height = 33.000000000000000000
+      Size.PlatformDefault = False
+      StyledSettings = [Family, FontColor]
+    end
+    object edtFileName: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      Align = MostLeft
+      TabOrder = 1
+      Text = '1.wmv'
+      TextSettings.Font.Size = 14.000000000000000000
+      TextSettings.Font.StyleExt = {00060000000000000004000000}
+      Position.X = 233.000000000000000000
+      Size.Width = 160.000000000000000000
+      Size.Height = 33.000000000000000000
+      Size.PlatformDefault = False
+      StyledSettings = [Family, FontColor]
+    end
+    object btnInfoHead: TButton
+      Align = MostLeft
+      Position.X = 393.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 33.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Text = 'btnInfoHead'
+    end
+    object btnInfo: TButton
+      Align = MostLeft
+      Position.X = 473.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 33.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 3
+      Text = 'btnInfo'
+    end
+    object btnDownload: TButton
+      Align = MostLeft
+      Position.X = 553.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 33.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      Text = 'btnDownload'
+      OnClick = btnDownloadClick
+    end
+    object btnUpload: TButton
+      Align = MostLeft
+      Position.X = 633.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 33.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = 'btnUpload'
+      OnClick = btnUploadClick
+    end
+    object btnDelete: TButton
+      Align = MostLeft
+      Position.X = 713.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 33.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 6
+      Text = 'btnDelete'
+      OnClick = btnDeleteClick
+    end
+  end
+  object mmo: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    Align = Client
+    Size.Width = 879.000000000000000000
+    Size.Height = 397.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    Viewport.Width = 875.000000000000000000
+    Viewport.Height = 393.000000000000000000
+  end
+  object pnlPB: TPanel
+    Align = MostBottom
+    Position.Y = 430.000000000000000000
+    Size.Width = 879.000000000000000000
+    Size.Height = 50.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+  end
+  object Http1: TNetHTTPClient
+    Asynchronous = False
+    ConnectionTimeout = 60000
+    ResponseTimeout = 60000
+    AllowCookies = True
+    HandleRedirects = True
+    UserAgent = 'Embarcadero URI Client/1.0'
+    Left = 400
+    Top = 112
+  end
+end

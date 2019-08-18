@@ -9,7 +9,11 @@ import (
 )
 
 func Download() http.HandlerFunc {
-	var downloadLimit = make(chan struct{}, config.Default.FileConfig.DownloadLimit)
+	var (
+		cfg           = config.Default.FileConfig
+		downloadLimit = make(chan struct{}, cfg.DownloadLimit)
+	)
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			now = time.Now()
@@ -37,7 +41,7 @@ func Download() http.HandlerFunc {
 			<-downloadLimit
 		}()
 
-		http.ServeFile(w, r, filepath.Join(config.Default.FileConfig.WorkDir, filename))
+		http.ServeFile(w, r, filepath.Join(cfg.WorkDir, filename))
 
 		log.WithField("latency", fmt.Sprintf("%v", time.Since(now))).
 			Info("done")

@@ -1,0 +1,34 @@
+object fmeDownloadFile: TfmeDownloadFile
+  Align = Fit
+  Size.Width = 715.000000000000000000
+  Size.Height = 40.000000000000000000
+  Size.PlatformDefault = False
+  object pb: TProgressBar
+    Align = MostTop
+    Orientation = Horizontal
+    Size.Width = 715.000000000000000000
+    Size.Height = 20.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object pnl: TPanel
+    Align = Client
+    Size.Width = 715.000000000000000000
+    Size.Height = 20.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    object lblFile: TLabel
+      Align = MostLeft
+      Size.Width = 177.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+    end
+    object lblInfo: TLabel
+      Align = Client
+      Size.Width = 538.000000000000000000
+      Size.Height = 20.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+    end
+  end
+end

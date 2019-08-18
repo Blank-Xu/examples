@@ -77,10 +77,4 @@ func defaultCheck() {
 	} else {
 		Default.FileConfig.UploadChunkSize *= 1024 * 1024
 	}
-
-	if Default.FileConfig.DownloadChunkSize == 0 {
-		Default.FileConfig.DownloadChunkSize = defaultChunkSize
-	} else {
-		Default.FileConfig.DownloadChunkSize *= 1024 * 1024
-	}
 }

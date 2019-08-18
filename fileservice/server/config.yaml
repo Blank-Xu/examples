@@ -2,9 +2,9 @@ server:
   name: fileserver
   ip:
   port: 8080
-  read_timeout: 60 # 单位：s
-  write_timeout: 60
-  idle_timeout: 120
+  read_timeout: 90 # 单位：s
+  write_timeout: 120
+  idle_timeout: 150
   max_conn_per_host: 300 # 最大连接数
   max_idle_conn: 200
   max_idle_conn_per_host: 100
@@ -15,7 +15,6 @@ file_config:
   upload_max_size: 200 # 单位：MB
   upload_chunk_size: 4 # 单位：MB
   download_limit: 50 # 并发下载人数限制
-  download_chunk_size: 4 # 单位：MB
   file_md5_limit: 50 # 限制获取md5，防止内存占满
 
 time_zone:

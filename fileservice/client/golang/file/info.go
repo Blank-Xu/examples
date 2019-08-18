@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	requestTimeout = time.Second * 30
+	requestTimeout = time.Second * 60
 	chunkSize      = 4 * 1024 * 1024
 	workDir        = "files"
 )

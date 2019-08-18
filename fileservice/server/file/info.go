@@ -13,7 +13,10 @@ import (
 )
 
 func Info() http.HandlerFunc {
-	var md5Limit = make(chan struct{}, config.Default.FileConfig.FileMd5Limit)
+	var (
+		cfg      = config.Default.FileConfig
+		md5Limit = make(chan struct{}, cfg.FileMd5Limit)
+	)
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			now = time.Now()
@@ -29,12 +32,12 @@ func Info() http.HandlerFunc {
 
 		switch r.Method {
 		case http.MethodHead:
-			http.ServeFile(w, r, filepath.Join(config.Default.FileConfig.WorkDir, filename))
+			http.ServeFile(w, r, filepath.Join(cfg.WorkDir, filename))
 
 		case http.MethodGet:
 			log.Infof("info request filename: %s", filename)
 
-			var lfilename = filepath.Join(config.Default.FileConfig.WorkDir, filename)
+			var lfilename = filepath.Join(cfg.WorkDir, filename)
 			file, err := os.Stat(lfilename)
 			if err != nil {
 				if os.IsNotExist(err) {
@@ -57,24 +60,19 @@ func Info() http.HandlerFunc {
 				mfile, _ := os.OpenFile(lfilename, os.O_RDONLY, 0666)
 				if mfile != nil {
 					defer mfile.Close()
-				}
 
-				md5 = utils.Md5File(mfile)
+					md5 = utils.Md5File(mfile)
+				}
 			}
 
-			var (
-				cfg = config.Default.FileConfig
-
-				resp = infoResponse{
-					Name:              file.Name(),
-					Size:              file.Size(),
-					ModTime:           file.ModTime().Unix(),
-					Md5:               md5,
-					UploadMaxSize:     cfg.UploadMaxSize,
-					UploadChunkSize:   cfg.UploadChunkSize,
-					DownloadChunkSize: cfg.DownloadChunkSize,
-				}
-			)
+			var resp = infoResponse{
+				Name:            file.Name(),
+				Size:            file.Size(),
+				ModTime:         file.ModTime().Unix(),
+				Md5:             md5,
+				UploadMaxSize:   cfg.UploadMaxSize,
+				UploadChunkSize: cfg.UploadChunkSize,
+			}
 
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			w.WriteHeader(http.StatusOK)
@@ -96,11 +94,10 @@ func Info() http.HandlerFunc {
 }
 
 type infoResponse struct {
-	Name              string `json:"name"`
-	Size              int64  `json:"size"`
-	ModTime           int64  `json:"mod_time"`
-	Md5               string `json:"md5"`
-	UploadMaxSize     int64  `json:"upload_max_size"`
-	UploadChunkSize   int64  `json:"upload_chunk_size"`
-	DownloadChunkSize int64  `json:"download_chunk_size"`
+	Name            string `json:"name"`
+	Size            int64  `json:"size"`
+	ModTime         int64  `json:"mod_time"`
+	Md5             string `json:"md5"`
+	UploadMaxSize   int64  `json:"upload_max_size"`
+	UploadChunkSize int64  `json:"upload_chunk_size"`
 }
