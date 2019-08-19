@@ -55,6 +55,5 @@ func initLog(cfg LogConfig) {
 		}
 
 		logrus.SetOutput(rotate)
-		log.SetOutput(rotate)
 	}
 }

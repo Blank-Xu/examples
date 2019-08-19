@@ -29,7 +29,7 @@ type
       FFileService: TFileService;
       FError: string;
       FHost, FFileName, FWorkDir: string;
-      FTotalSize, FReadSize: Int64;
+      FTotalSize, FReadSize, FStartSize: Int64;
       FStartTime, FLastTime: Cardinal;
     function GetStatusCode: Integer;
     procedure SetStatus(ASize: Int64);
@@ -99,8 +99,9 @@ begin
         else
           FStream := TFileStream.Create(LocalFileName, fmCreate or fmShareExclusive);
 
+        FStartSize := FTotalSize - FStream.Size;
 				// 严格比较可以对比两个文件的md5
-        if (FTotalSize - FStream.Size) = 0 then
+        if FStartSize = 0 then
         begin
           FError := 'file have been download';
         end
@@ -110,7 +111,7 @@ begin
             procedure
             begin
               pb.Max := FTotalSize;
-              pb.Value := FStream.Size;
+              pb.Value := FStartSize;
               lblInfo.Text := '0 KB/s';
             end);
 
@@ -143,6 +144,12 @@ begin
             FError := Format('download file[%s] success', [FFileName]);
             Result := True;
           end;
+
+          TThread.Synchronize(nil,
+            procedure
+            begin
+              lblInfo.Text := '0 KB/s';
+            end);
         end;
       finally
         if Assigned(FStream) then
@@ -179,10 +186,10 @@ begin
   if AContentLength = AReadCount then
   begin
     Inc(FReadSize, AReadCount);
-    Value := FReadSize;
+    Value := FStartSize + FReadSize;
   end
   else
-    Value := FReadSize + AReadCount;
+    Value := FStartSize + FReadSize + AReadCount;
 
   if Value >= FTotalSize then
   begin
@@ -194,7 +201,7 @@ begin
     Time := TThread.GetTickCount - FStartTime; //计算用时
     if (Time - FLastTime) > 900 then
     begin
-      Speed := (Value * 1000) div Time; //计算速度
+      Speed := ((Value - FStartSize) * 1000) div Time; //计算速度
       Info := BytesToStr(Speed);
 
       FLastTime := Time;

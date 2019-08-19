@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -50,26 +51,35 @@ func main() {
 	)
 
 	logrus.Infof("server version: [%s], start addr: [%s]", config.VERSION, addr)
+	log.Printf("server version: [%s], start addr: [%s]", config.VERSION, addr)
 
 	http.DefaultTransport.(*http.Transport).MaxConnsPerHost = cfg.MaxConnPerHost
 	http.DefaultTransport.(*http.Transport).MaxIdleConns = cfg.MaxIdleConn
 	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = cfg.MaxIdleConnPerHost
 
-	logrus.Warnf("server exit, %v", server.ListenAndServe())
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			logrus.Errorf("server start failed, err: %v", err)
+			log.Printf("server start failed, err: %v", err)
+		}
+	}()
 
 	quit := make(chan os.Signal)
-	signal.Notify(quit, syscall.SIGKILL, syscall.SIGQUIT, syscall.SIGTERM)
+	signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
-	logrus.Warnf("receive signal: %v", <-quit)
-	logrus.Warn("start shutdown server...")
+	var msg = fmt.Sprintf("receive shutdown signal: %v", <-quit)
+	logrus.Warn(msg)
+	log.Printf(msg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
 		logrus.Errorf("shutdown failed: %v", err)
+		log.Printf("shutdown failed: %v", err)
 	}
 
 	<-ctx.Done()
 	logrus.Warnf("server exited")
+	log.Printf("server exited")
 }

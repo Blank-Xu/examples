@@ -167,6 +167,12 @@ begin
               FError := Format('upload file[%s] success', [FFileName]);
               Result := True;
             end;
+
+            TThread.Queue(nil,
+              procedure
+              begin
+                lblInfo.Text := '0 KB/s';
+              end);
           end;
         finally
           if Assigned(FStream) then
