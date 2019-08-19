@@ -35,8 +35,13 @@ func initLog(cfg LogConfig) {
 
 	if cfg.WriteFile {
 		if len(cfg.WorkDir) > 0 {
-			if err := os.MkdirAll(cfg.WorkDir, 0666); err != nil {
+			if err := os.MkdirAll(cfg.WorkDir, 0766); err != nil {
 				log.Println("mkdir failed, err:", err)
+				panic(err)
+			}
+
+			if err := os.Chmod(cfg.WorkDir, 0766); err != nil {
+				log.Println("Chmod file failed, err:", err)
 				panic(err)
 			}
 		}

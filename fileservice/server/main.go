@@ -59,8 +59,8 @@ func main() {
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			logrus.Errorf("server start failed, err: %v", err)
-			log.Printf("server start failed, err: %v", err)
+			logrus.Errorf("server exit with err: %v", err)
+			log.Printf("server exit with err: %v", err)
 		}
 	}()
 
@@ -80,6 +80,7 @@ func main() {
 	}
 
 	<-ctx.Done()
+
 	logrus.Warnf("server exited")
 	log.Printf("server exited")
 }
