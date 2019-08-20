@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 
+	"framework/fileservice/server/utils"
+
 	"github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v3"
 )
@@ -60,7 +62,7 @@ func defaultCheck() {
 		Default.FileConfig.WorkDir = "files"
 	}
 
-	if err := os.Mkdir(Default.FileConfig.WorkDir, os.ModePerm); err != nil {
+	if err := utils.MkdirAll(Default.FileConfig.WorkDir); err != nil {
 		if !os.IsExist(err) {
 			panic(fmt.Sprintf("mkdir[%s] failed, err: %v", Default.FileConfig.WorkDir, err))
 		}

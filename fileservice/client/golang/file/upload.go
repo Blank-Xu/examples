@@ -35,8 +35,10 @@ func Upload(host, filename string, safety ...bool) error {
 	}
 
 	var (
-		info, _ = file.Stat()
-		upSize  int64
+		info, _   = file.Stat()
+		uploadUrl = fmt.Sprintf("%s/upload?filename=%s", host, upfilename)
+
+		upSize int64
 	)
 
 	for {
@@ -60,7 +62,7 @@ func Upload(host, filename string, safety ...bool) error {
 			return err
 		}
 
-		if size, err = uploadChunk(host, upfilename, bytes.NewReader(data), startSize, startSize-1+int64(size)); err != nil {
+		if size, err = uploadChunk(uploadUrl, bytes.NewReader(data), startSize, startSize-1+int64(size)); err != nil {
 			return err
 		}
 
@@ -72,8 +74,8 @@ func Upload(host, filename string, safety ...bool) error {
 	return nil
 }
 
-func uploadChunk(host, filename string, body io.Reader, start, end int64) (int64, error) {
-	var req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("%s/upload?filename=%s", host, filename), body)
+func uploadChunk(url string, body io.Reader, start, end int64) (int64, error) {
+	var req, _ = http.NewRequest(http.MethodPost, url, body)
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
 
 	var httpClient = http.Client{Timeout: requestTimeout}

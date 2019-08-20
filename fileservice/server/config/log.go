@@ -1,8 +1,8 @@
 package config
 
 import (
+	"framework/fileservice/server/utils"
 	"log"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -35,13 +35,8 @@ func initLog(cfg LogConfig) {
 
 	if cfg.WriteFile {
 		if len(cfg.WorkDir) > 0 {
-			if err := os.MkdirAll(cfg.WorkDir, 0766); err != nil {
-				log.Println("mkdir failed, err:", err)
-				panic(err)
-			}
-
-			if err := os.Chmod(cfg.WorkDir, 0766); err != nil {
-				log.Println("Chmod file failed, err:", err)
+			if err := utils.MkdirAll(cfg.WorkDir); err != nil {
+				log.Printf("mkdir [%s] failed, err: %v", cfg.WorkDir, err)
 				panic(err)
 			}
 		}

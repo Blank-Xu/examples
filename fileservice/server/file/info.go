@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"framework/fileservice/server/config"
 	"framework/fileservice/server/utils"
 )
@@ -58,10 +60,20 @@ func Info() http.HandlerFunc {
 				}()
 
 				mfile, _ := os.OpenFile(lfilename, os.O_RDONLY, 0666)
-				if mfile != nil {
-					defer mfile.Close()
+				if mfile == nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte(err.Error()))
+					logrus.Error(err)
+					return
+				}
+				defer mfile.Close()
 
-					md5 = utils.Md5File(mfile)
+				md5, err = utils.Md5File(mfile)
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte(err.Error()))
+					logrus.Error(err)
+					return
 				}
 			}
 

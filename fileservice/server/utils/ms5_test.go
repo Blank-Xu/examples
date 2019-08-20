@@ -15,7 +15,12 @@ func TestMd5File(t *testing.T) {
 	}
 	defer file1.Close()
 
-	t.Logf("filename: %s, md5:%s", filename1, Md5File(file1))
+	md5, err := Md5File(file1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("filename: %s, md5:%s", filename1, md5)
 }
 
 func TestMd5File2(t *testing.T) {
@@ -31,8 +36,18 @@ func TestMd5File2(t *testing.T) {
 	}
 	defer file2.Close()
 
-	t.Logf("filename1: %s, md5:%s", filename1, Md5File(file1))
-	t.Logf("filename2: %s, md5:%s", filename2, Md5File(file2))
+	md5, err := Md5File(file1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	md52, err := Md5File(file2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("filename1: %s, md5:%s", filename1, md5)
+	t.Logf("filename2: %s, md5:%s", filename2, md52)
 }
 
 func BenchmarkMd5File(b *testing.B) {
