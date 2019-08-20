@@ -5,9 +5,9 @@ server:
   read_timeout: 90 # 单位：s
   write_timeout: 120
   idle_timeout: 150
-  max_conn_per_host: 300 # 最大连接数
-  max_idle_conn: 200
-  max_idle_conn_per_host: 100
+  max_conns_per_host: 300 # 最大连接数
+  max_idle_conns: 200
+  max_idle_conns_per_host: 200
 
 file_config:
   work_dir: files
@@ -15,7 +15,7 @@ file_config:
   upload_max_size: 200 # 单位：MB
   upload_chunk_size: 4 # 单位：MB
   download_limit: 50 # 并发下载人数限制
-  file_md5_limit: 50 # 限制获取md5，防止内存占满
+  file_md5_limit: 50 # 并发获取md5人数，防止内存占满
 
 time_zone:
   name: UTC

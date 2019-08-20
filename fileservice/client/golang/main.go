@@ -59,6 +59,6 @@ func main() {
 
 	wg.Wait()
 
-	log.Printf("total time cost: %v, count: %d, every func cost: %v",
-		time.Since(now), *count, time.Since(now).Nanoseconds()/int64(*count))
+	log.Printf("totalCount: %d, successCount: %d, total time cost: %v, every func cost: %v",
+		*count, successCount, time.Since(now), time.Since(now).Nanoseconds()/int64(*count))
 }

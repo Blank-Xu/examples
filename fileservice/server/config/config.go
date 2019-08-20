@@ -40,14 +40,10 @@ func Init() {
 		panic(fmt.Sprintf("decode config file failed, err: %v", err))
 	}
 
-	log.Printf("decode config success, config: %+v", cfg)
-
 	initTime(cfg.TimeZone)
-
 	initLog(cfg.LogConfig)
 
 	Default = &cfg
-
 	defaultCheck()
 
 	logrus.Info("load config success")

@@ -16,6 +16,10 @@ import (
 	"framework/fileservice/server/file"
 )
 
+func init() {
+	log.SetFlags(255)
+}
+
 func main() {
 	defer func() {
 		if err := recover(); err != nil {
@@ -48,39 +52,45 @@ func main() {
 			WriteTimeout: time.Second * time.Duration(cfg.WriteTimeout),
 			IdleTimeout:  time.Second * time.Duration(cfg.IdleTimeout),
 		}
+
+		pid = os.Getpid()
+
+		msg = fmt.Sprintf("server pid[%d] start, version: [%s], addr: [%s]", pid, config.VERSION, addr)
 	)
+	logrus.Info(msg)
+	log.Printf(msg)
 
-	logrus.Infof("server version: [%s], start addr: [%s]", config.VERSION, addr)
-	log.Printf("server version: [%s], start addr: [%s]", config.VERSION, addr)
-
-	http.DefaultTransport.(*http.Transport).MaxConnsPerHost = cfg.MaxConnPerHost
-	http.DefaultTransport.(*http.Transport).MaxIdleConns = cfg.MaxIdleConn
-	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = cfg.MaxIdleConnPerHost
+	http.DefaultTransport.(*http.Transport).MaxConnsPerHost = cfg.MaxConnsPerHost
+	http.DefaultTransport.(*http.Transport).MaxIdleConns = cfg.MaxIdleConns
+	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = cfg.MaxIdleConnsPerHost
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			logrus.Errorf("server exit with err: %v", err)
-			log.Printf("server exit with err: %v", err)
+			msg = fmt.Sprintf("server pid[%d] exit with err: %v", pid, err)
+			logrus.Error(msg)
+			log.Print(msg)
 		}
 	}()
 
-	quit := make(chan os.Signal)
+	var quit = make(chan os.Signal)
 	signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
-	var msg = fmt.Sprintf("receive shutdown signal: %v", <-quit)
+	msg = fmt.Sprintf("server pid[%d] received shutdown signal: [%v]", pid, <-quit)
 	logrus.Warn(msg)
-	log.Printf(msg)
+	log.Print(msg)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	var ctx, cancel = context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		logrus.Errorf("shutdown failed: %v", err)
-		log.Printf("shutdown failed: %v", err)
+		msg = fmt.Sprintf("server pid[%d] shutdown failed, err: %v", pid, err)
+		logrus.Error(msg)
+		log.Print(msg)
 	}
 
 	<-ctx.Done()
 
-	logrus.Warnf("server exited")
-	log.Printf("server exited")
+	msg = fmt.Sprintf("server pid[%d] exited", pid)
+	logrus.Warn(msg)
+	log.Print(msg)
 }

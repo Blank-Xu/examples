@@ -17,6 +17,7 @@
         <Filename Value="uclient.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="frmClient"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="uClient"/>
         <IsVisibleTab Value="True"/>

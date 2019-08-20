@@ -9,9 +9,7 @@ func MkdirAll(dir string) (err error) {
 		return
 	}
 
-	if err = os.Chmod(dir, 0766); err != nil {
-		return
-	}
+	err = os.Chmod(dir, 0766)
 
 	return
 }

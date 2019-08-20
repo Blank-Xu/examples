@@ -20,13 +20,18 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="uClient"/>
         <IsVisibleTab Value="True"/>
-        <CursorPos X="79" Y="11"/>
+        <CursorPos X="67" Y="22"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit1>
     </Units>
-    <JumpHistory HistoryIndex="-1"/>
+    <JumpHistory Count="1">
+      <Position1>
+        <Filename Value="uclient.pas"/>
+        <Caret Line="15" Column="94"/>
+      </Position1>
+    </JumpHistory>
     <RunParams>
       <FormatVersion Value="2"/>
       <Modes Count="0" ActiveMode=""/>

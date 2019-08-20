@@ -71,6 +71,7 @@ __recovery/
 files/
 logs/
 temp
+*.log
 
 fileserver
 fileclient
