@@ -43,7 +43,7 @@ object frmMain: TfrmMain
     object btnInfoHead: TButton
       Align = MostLeft
       Position.X = 393.000000000000000000
-      Size.Width = 80.000000000000000000
+      Size.Width = 60.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 2
@@ -51,8 +51,8 @@ object frmMain: TfrmMain
     end
     object btnInfo: TButton
       Align = MostLeft
-      Position.X = 473.000000000000000000
-      Size.Width = 80.000000000000000000
+      Position.X = 453.000000000000000000
+      Size.Width = 60.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 3
@@ -60,8 +60,8 @@ object frmMain: TfrmMain
     end
     object btnDownload: TButton
       Align = MostLeft
-      Position.X = 553.000000000000000000
-      Size.Width = 80.000000000000000000
+      Position.X = 513.000000000000000000
+      Size.Width = 60.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 4
@@ -70,8 +70,8 @@ object frmMain: TfrmMain
     end
     object btnUpload: TButton
       Align = MostLeft
-      Position.X = 633.000000000000000000
-      Size.Width = 80.000000000000000000
+      Position.X = 573.000000000000000000
+      Size.Width = 60.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 5
@@ -80,13 +80,32 @@ object frmMain: TfrmMain
     end
     object btnDelete: TButton
       Align = MostLeft
-      Position.X = 713.000000000000000000
-      Size.Width = 80.000000000000000000
+      Position.X = 633.000000000000000000
+      Size.Width = 60.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 6
       Text = 'btnDelete'
       OnClick = btnDeleteClick
+    end
+    object btnUpload2: TButton
+      Align = MostLeft
+      Position.X = 753.000000000000000000
+      Size.Width = 60.000000000000000000
+      Size.Height = 33.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 8
+      Text = 'btnUpload'
+    end
+    object btnDownload2: TButton
+      Align = MostLeft
+      Position.X = 693.000000000000000000
+      Size.Width = 60.000000000000000000
+      Size.Height = 33.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 7
+      Text = 'btnDownload'
+      OnClick = btnDownload2Click
     end
   end
   object mmo: TMemo
@@ -94,11 +113,11 @@ object frmMain: TfrmMain
     DataDetectorTypes = []
     Align = Client
     Size.Width = 879.000000000000000000
-    Size.Height = 397.000000000000000000
+    Size.Height = 351.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 1
     Viewport.Width = 875.000000000000000000
-    Viewport.Height = 393.000000000000000000
+    Viewport.Height = 347.000000000000000000
   end
   object pnlPB: TPanel
     Align = MostBottom
@@ -108,14 +127,41 @@ object frmMain: TfrmMain
     Size.PlatformDefault = False
     TabOrder = 3
   end
-  object Http1: TNetHTTPClient
-    Asynchronous = False
-    ConnectionTimeout = 60000
-    ResponseTimeout = 60000
-    AllowCookies = True
-    HandleRedirects = True
-    UserAgent = 'Embarcadero URI Client/1.0'
-    Left = 400
-    Top = 112
+  object pnlPB2: TPanel
+    Align = Bottom
+    Position.Y = 384.000000000000000000
+    Size.Width = 879.000000000000000000
+    Size.Height = 46.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 4
+    object pb: TProgressBar
+      Align = Client
+      Orientation = Horizontal
+      Size.Width = 879.000000000000000000
+      Size.Height = 24.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object pnl2: TPanel
+      Align = Bottom
+      Position.Y = 24.000000000000000000
+      Size.Width = 879.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      object lblInfo: TLabel
+        Align = Client
+        Size.Width = 702.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+      end
+      object lblFile: TLabel
+        Align = MostLeft
+        Size.Width = 177.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+      end
+    end
   end
 end

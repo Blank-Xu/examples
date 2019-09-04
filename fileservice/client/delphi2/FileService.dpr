@@ -6,8 +6,9 @@ uses
   ufrmMain in 'ufrmMain.pas' {frmMain},
   uFileService in 'uFileService.pas',
   ufmeDownloadFile in 'ufmeDownloadFile.pas' {fmeDownloadFile: TFrame},
-	ufmeUploadFile in 'ufmeUploadFile.pas' {fmeUploadFile: TFrame},
-	uTools in 'uTools.pas';
+  ufmeUploadFile in 'ufmeUploadFile.pas' {fmeUploadFile: TFrame},
+  uTools in 'uTools.pas',
+  uProgressFileStream in 'uProgressFileStream.pas';
 
 {$R *.res}
 
