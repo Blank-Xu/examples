@@ -40,71 +40,53 @@ object frmMain: TfrmMain
       Size.PlatformDefault = False
       StyledSettings = [Family, FontColor]
     end
-    object btnInfoHead: TButton
+    object btnDownload: TButton
       Align = MostLeft
       Position.X = 393.000000000000000000
-      Size.Width = 60.000000000000000000
+      Size.Width = 85.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 2
-      Text = 'btnInfoHead'
-    end
-    object btnInfo: TButton
-      Align = MostLeft
-      Position.X = 453.000000000000000000
-      Size.Width = 60.000000000000000000
-      Size.Height = 33.000000000000000000
-      Size.PlatformDefault = False
-      TabOrder = 3
-      Text = 'btnInfo'
-    end
-    object btnDownload: TButton
-      Align = MostLeft
-      Position.X = 513.000000000000000000
-      Size.Width = 60.000000000000000000
-      Size.Height = 33.000000000000000000
-      Size.PlatformDefault = False
-      TabOrder = 4
       Text = 'btnDownload'
       OnClick = btnDownloadClick
     end
     object btnUpload: TButton
       Align = MostLeft
-      Position.X = 573.000000000000000000
-      Size.Width = 60.000000000000000000
+      Position.X = 478.000000000000000000
+      Size.Width = 85.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 5
+      TabOrder = 3
       Text = 'btnUpload'
       OnClick = btnUploadClick
     end
     object btnDelete: TButton
       Align = MostLeft
-      Position.X = 633.000000000000000000
-      Size.Width = 60.000000000000000000
+      Position.X = 563.000000000000000000
+      Size.Width = 85.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 6
+      TabOrder = 4
       Text = 'btnDelete'
       OnClick = btnDeleteClick
     end
     object btnUpload2: TButton
       Align = MostLeft
-      Position.X = 753.000000000000000000
-      Size.Width = 60.000000000000000000
+      Position.X = 733.000000000000000000
+      Size.Width = 85.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 8
-      Text = 'btnUpload'
+      TabOrder = 6
+      Text = 'btnUpload2'
     end
     object btnDownload2: TButton
       Align = MostLeft
-      Position.X = 693.000000000000000000
-      Size.Width = 60.000000000000000000
+      Position.X = 648.000000000000000000
+      Size.Width = 85.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 7
-      Text = 'btnDownload'
+      TabOrder = 5
+      Text = 'btnDownload2'
       OnClick = btnDownload2Click
     end
   end

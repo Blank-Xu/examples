@@ -28,8 +28,6 @@ type
     pnl1: TPanel;
     edtHost: TEdit;
     edtFileName: TEdit;
-    btnInfoHead: TButton;
-    btnInfo: TButton;
     btnDownload: TButton;
     btnUpload: TButton;
     btnDelete: TButton;
@@ -50,6 +48,8 @@ type
   private
     const
       FWorkDir = 'files';
+    var
+      FTotalSize: Int64;
     procedure ProgressCallback(Sender: TObject; Processed: Int64; Size: Int64; ContentLength: Int64; TimeStart: Cardinal);
   public
 		{ Public declarations }
@@ -86,13 +86,15 @@ procedure TfrmMain.btnDownload2Click(Sender: TObject);
 var
   fStream: TProgressFileStream;
   url, Msg: string;
-  sSize: Int64;
   size: Int64;
-  FileName, LocalFileName: string;
+  Host, FileName, LocalFileName: string;
   fme: TFileService;
 begin
+  Host := edtHost.Text;
+  FileName := edtFileName.Text;
   LocalFileName := TPath.Combine(FWorkDir, FileName);
 
+  pb.Max := 0;
   pb.Value := 0;
   lblInfo.Text := '0 KB/s';
   lblFile.Text := edtFileName.Text;
@@ -102,31 +104,33 @@ begin
     begin
       try
         try
-          fme := TFileService.Create(nil, edtHost.Text, edtFileName.Text);
-          if fme.InfoHead(FileName, sSize) or (fme.StatusCode = 404) then
+          fme := TFileService.Create(nil, Host, FileName);
+          if fme.InfoHead(FileName, FTotalSize) or (fme.StatusCode = 404) then
           begin
             try
               if FileExists(LocalFileName) then
                 fStream := TProgressFileStream.Create(LocalFileName, fmOpenWrite or fmShareExclusive)
               else
                 fStream := TProgressFileStream.Create(LocalFileName, fmCreate or fmShareExclusive);
+              fStream.OnProgress := ProgressCallback;
 							// 严格比较可以对比两个文件的md5
-              if (sSize - fStream.Size) = 0 then
+              if (FTotalSize - fStream.Size) = 0 then
               begin
                 Msg := 'file have been download';
               end
               else
               begin
-                TThread.Queue(nil,
+                TThread.Synchronize(nil,
                   procedure
                   begin
-										pb.Max := sSize;
-										pb.Value := sSize - fStream.Size;
+                    pb.Max := FTotalSize;
+                    pb.Value := FTotalSize - fStream.Size;
                   end);
+
                 url := fme.UrlDownload;
-                while (sSize - fStream.Size) > 0 do
+                while (FTotalSize - fStream.Size) > 0 do
                 begin
-                  size := sSize - fStream.Size;
+                  size := FTotalSize - fStream.Size;
                   if size = 0 then
                   begin
                     Break;
@@ -161,15 +165,15 @@ begin
       finally
         if Assigned(fme) then
           FreeAndNil(fme);
-			end;
+      end;
 
       TThread.Queue(nil,
-				procedure
-				begin
-					lblInfo.Text := '0 KB/s';
-					pb.Value := pb.Max;
-					mmo.Lines.Add(Msg);
-				end);
+        procedure
+        begin
+          lblInfo.Text := '0 KB/s';
+          pb.Value := pb.Max;
+          mmo.Lines.Add(Msg);
+        end);
     end).Start;
 end;
 
@@ -260,11 +264,15 @@ begin
 end;
 
 procedure TfrmMain.ProgressCallback(Sender: TObject; Processed, Size, ContentLength: Int64; TimeStart: Cardinal);
+var
+  msg: string;
 begin
+  msg := Format('FTotalSize: %d, Processed: %d, Size: %d, ContentLength: %d', [FTotalSize, Processed, Size, ContentLength]);
   TThread.Queue(nil,
     procedure
     begin
-      pb.Value := pb.Value + ContentLength;
+      mmo.Lines.Add(msg);
+      pb.Value := Processed;
 //			lblInfo.Text := Info;
     end);
 end;
