@@ -13,6 +13,14 @@ func Auth() http.HandlerFunc {
 		)
 		log.Info("client request")
 
+		switch r.Method {
+		case http.MethodGet:
+
+		case http.MethodPost:
+
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
 		log.WithField("latency", time.Since(now)).Info("done")
 	}
 }

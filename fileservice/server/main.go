@@ -72,10 +72,13 @@ func main() {
 		}
 	}()
 
-	var quit = make(chan os.Signal)
-	signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
+	var quitSignal = make(chan os.Signal)
+	signal.Notify(quitSignal, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
-	msg = fmt.Sprintf("server pid[%d] received shutdown signal: [%v]", pid, <-quit)
+	var signalMsg = <-quitSignal
+	close(quitSignal)
+
+	msg = fmt.Sprintf("server pid[%d] received shutdown signal: [%v]", pid, signalMsg)
 	logrus.Warn(msg)
 	log.Print(msg)
 
@@ -90,7 +93,7 @@ func main() {
 
 	<-ctx.Done()
 
-	msg = fmt.Sprintf("server pid[%d] exited", pid)
+	msg = fmt.Sprintf("server pid[%d] stoped", pid)
 	logrus.Warn(msg)
 	log.Print(msg)
 }
