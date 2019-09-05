@@ -14,8 +14,8 @@ type
   TFileService = class(TNetHTTPClient)
   private
     const
-			CONNECTION_TIMEOUT = 120*1000;
-			RESPONSE_TIMEOUT = 120*1000;
+      CONNECTION_TIMEOUT = 120 * 1000;
+      RESPONSE_TIMEOUT = 120 * 1000;
       RANGE_BYTES = 'bytes=%d-%d';
       URL_INFO_HEAD = '%s/info?filename=%s';
       URL_INFO = '%s/info?filename=%s';
@@ -55,14 +55,14 @@ type
 		// for get file size and mod time
     function InfoHead(const FileName: string; var size: Int64): Boolean; overload;
     function InfoHead(var size: Int64): Boolean; overload;
-    function Info(const FileName: string; var FileInfoStream: TMemoryStream; const Md5: Boolean = False): Boolean; overload;
+		function Info(const FileName: string; var FileInfoStream: TMemoryStream; const Md5: Boolean = False): Boolean; overload;
     function Info(var FileInfoStream: TMemoryStream; const Md5: Boolean = False): Boolean; overload;
     function DownloadFile(const FileName: string): Boolean;
     function UploadFile(const FileName: string): Boolean;
     function DeleteFile: Boolean; overload;
     function DeleteFile(const FileName: string): Boolean; overload;
     function DownloadChunk(FileStream: TFileStream; const url: string; const Offset, size: Int64): Boolean;
-    function UploadChunk(FileStream: TFileStream; const url: string; const Offset, size: Int64): Boolean;
+		function UploadChunk(FileStream: TFileStream; const url: string; const Offset, size: Int64): Boolean; 
   end;
 
 implementation
@@ -98,12 +98,12 @@ constructor TFileService.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
 
-	FUploadChunkSize := 1024 * 1024;   // 1MB
-	FDownloadChunkSize := 4 * 1024 * 1024; // 4MB
+  FUploadChunkSize := 1024 * 1024;   // 1MB
+  FDownloadChunkSize := 4 * 1024 * 1024; // 4MB
 
   HandleRedirects := True;
   UserAgent := 'client 1.0';
-	ConnectionTimeout := CONNECTION_TIMEOUT;
+  ConnectionTimeout := CONNECTION_TIMEOUT;
   ResponseTimeout := RESPONSE_TIMEOUT;
   CustomHeaders['Keep-Alive'] := '60';
 end;
@@ -350,7 +350,7 @@ var
   SStream: TStringStream;
   MStream, RespStream: TMemoryStream;
 begin
-  Result := False;
+	Result := False;
 
   SetLength(AHeaders, Length(AHeaders) + 1);
   AHeaders[High(AHeaders)] := TNameValuePair.Create('Range', Format(RANGE_BYTES, [offset, size]));
@@ -389,7 +389,7 @@ begin
       FreeAndNil(MStream);
     if Assigned(RespStream) then
       FreeAndNil(RespStream);
-  end;
+	end;
 end;
 
 function TFileService.UploadFile(const FileName: string): Boolean;
@@ -439,7 +439,7 @@ begin
           if not UploadChunk(fStream, url, sSize, sSize + size - 1) then
             Exit;
 
-          sSize := sSize + size;
+					Inc(sSize, size);
         end;
 
         if (sSize - fStream.Size) = 0 then
@@ -456,4 +456,3 @@ begin
 end;
 
 end.
-
