@@ -19,7 +19,7 @@ object frmMain: TfrmMain
       Touch.InteractiveGestures = [LongTap, DoubleTap]
       Align = MostLeft
       TabOrder = 0
-      Text = 'http://127.0.0.1:8080'
+      Text = 'http://192.168.10.105:8080'
       TextSettings.Font.Size = 14.000000000000000000
       TextSettings.Font.StyleExt = {00060000000000000004000000}
       Size.Width = 233.000000000000000000
@@ -78,6 +78,7 @@ object frmMain: TfrmMain
       Size.PlatformDefault = False
       TabOrder = 6
       Text = 'btnUpload2'
+      OnClick = btnUpload2Click
     end
     object btnDownload2: TButton
       Align = MostLeft

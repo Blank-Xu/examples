@@ -62,9 +62,10 @@ begin
   TThread.Queue(nil,
     procedure
     begin
-      pb.Max := 0;
+      pb.Max := 1000;
       pb.Value := 0;
       lblFile.Text := AFileName;
+      lblInfo.Text := '0 KB/s';
     end);
 
   FFileService := TFileService.Create(AOwner, AHost, AFileName);
@@ -99,9 +100,9 @@ begin
         else
           FStream := TFileStream.Create(LocalFileName, fmCreate or fmShareExclusive);
 
-        FStartSize := FTotalSize - FStream.Size;
+				FStartSize :=  FStream.Size;
 				// 严格比较可以对比两个文件的md5
-        if FStartSize = 0 then
+        if FTotalSize - FStartSize = 0 then
         begin
           FError := 'file have been download';
         end

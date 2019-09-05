@@ -45,12 +45,13 @@ type
     procedure btnUploadClick(Sender: TObject);
     procedure btnDeleteClick(Sender: TObject);
     procedure btnDownload2Click(Sender: TObject);
+    procedure btnUpload2Click(Sender: TObject);
   private
     const
       FWorkDir = 'files';
     var
       FTotalSize: Int64;
-    procedure ProgressCallback(Sender: TObject; Processed: Int64; Size: Int64; ContentLength: Int64; TimeStart: Cardinal);
+    procedure ProgressCallback(Sender: TObject; Processed: Int64; size: Int64; ContentLength: Int64; TimeStart: Cardinal);
   public
 		{ Public declarations }
   end;
@@ -94,8 +95,8 @@ begin
   FileName := edtFileName.Text;
   LocalFileName := TPath.Combine(FWorkDir, FileName);
 
-  pb.Max := 0;
   pb.Value := 0;
+  pb.Max := 1000;
   lblInfo.Text := '0 KB/s';
   lblFile.Text := edtFileName.Text;
 
@@ -114,7 +115,8 @@ begin
                 fStream := TProgressFileStream.Create(LocalFileName, fmCreate or fmShareExclusive);
               fStream.OnProgress := ProgressCallback;
 							// 严格比较可以对比两个文件的md5
-              if (FTotalSize - fStream.Size) = 0 then
+              size := FTotalSize - fStream.Size;
+              if size = 0 then
               begin
                 Msg := 'file have been download';
               end
@@ -124,7 +126,7 @@ begin
                   procedure
                   begin
                     pb.Max := FTotalSize;
-                    pb.Value := FTotalSize - fStream.Size;
+                    pb.Value := size;
                   end);
 
                 url := fme.UrlDownload;
@@ -217,6 +219,100 @@ begin
     end).Start;
 end;
 
+procedure TfrmMain.btnUpload2Click(Sender: TObject);
+var
+  fStream: TProgressFileStream;
+  url, Msg: string;
+  sSize, size: Int64;
+  Host, FileName, LocalFileName: string;
+  fme: TFileService;
+begin
+  Host := edtHost.Text;
+  FileName := edtFileName.Text;
+  LocalFileName := TPath.Combine(FWorkDir, FileName);
+
+  pb.Value := 0;
+  pb.Max := 1000;
+  lblInfo.Text := '0 KB/s';
+  lblFile.Text := edtFileName.Text;
+
+  if not FileExists(LocalFileName) then
+    Msg := 'file not found'
+  else
+  begin
+    TThread.CreateAnonymousThread(
+      procedure
+      begin
+        try
+          try
+            fStream := TProgressFileStream.Create(LocalFileName, fmOpenWrite or fmShareExclusive);
+            fStream.OnProgress := ProgressCallback;
+
+            fme := TFileService.Create(nil, Host, FileName);
+            sSize := 0;
+            if fme.InfoHead(FileName, sSize) or (fme.StatusCode = 404) then
+            begin
+              FTotalSize := fStream.Size;
+
+              TThread.Synchronize(nil,
+                procedure
+                begin
+                  pb.Max := FTotalSize;
+                  pb.Value := sSize;
+                end);
+
+							// 严格比较可以对比两个文件的md5
+                  if (FTotalSize - sSize) = 0 then
+              begin
+                Msg := 'server file has been upload';
+              end
+              else
+              begin
+                url := fme.UrlUpload;
+                while (FTotalSize - sSize) > 0 do
+                begin
+                  size := FTotalSize - sSize;
+                  if size = 0 then
+                  begin
+                    Break;
+                  end
+                  else if size < 0 then
+                  begin
+                    Msg := 'server file size error';
+                    Break;
+                  end
+                  else if size > fme.UploadChunkSize then
+                    size := fme.UploadChunkSize;
+
+                  if not fme.UploadChunk(fStream, url, sSize, sSize + size - 1) then
+                  begin
+                    Msg := fme.Error;
+                    Break;
+                  end;
+                  Inc(sSize, size);
+                end;
+
+                if (FTotalSize - sSize) = 0 then
+                  Msg := Format('upload file[%s] success', [FileName]);
+              end;
+            end
+            else
+              Msg := fme.Error;
+          except
+            on E: Exception do
+              Msg := E.Message;
+          end;
+        finally
+          if Assigned(fStream) then
+            FreeAndNil(fStream);
+          if Assigned(fme) then
+            FreeAndNil(fme);
+        end;
+      end).Start;
+  end;
+  mmo.Lines.Add(Msg);
+end;
+
 procedure TfrmMain.btnUploadClick(Sender: TObject);
 begin
   TThread.CreateAnonymousThread(
@@ -272,7 +368,10 @@ begin
     procedure
     begin
       mmo.Lines.Add(msg);
-      pb.Value := Processed;
+      if Processed > pb.Max then
+        pb.Value := pb.Max
+      else
+        pb.Value := Processed;
 //			lblInfo.Text := Info;
     end);
 end;
