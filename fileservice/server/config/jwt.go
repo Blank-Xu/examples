@@ -6,24 +6,34 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 )
 
+// iss (issuer)：签发人
+// sub (subject)：主题
+// aud (audience)：受众
+// exp (expiration time)：过期时间
+// nbf (Not Before)：生效时间，在此之前是无效的
+// iat (Issued At)：签发时间
+// jti (JWT ID)：编号
+
 type Jwt struct {
-	Audience string `yaml:"audience"`
-	Issuer   string `yaml:"issuer"`
-	Subject  string `yaml:"subject"`
-	Expire   int64  `yaml:"expire"`
+	Issuer  string `yaml:"issuer"`
+	Subject string `yaml:"subject"`
+	Expire  int64  `yaml:"expire"`
 
 	SignKey       string            `yaml:"sign_key"`
-	signKeyByte   []byte            `yaml:"-"`
+	signKey       []byte            `yaml:"-"`
 	SigningMethod string            `yaml:"signing_method"`
-	signedMethod  jwt.SigningMethod `yaml:"-"`
+	signingMethod jwt.SigningMethod `yaml:"-"`
+
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
 func (p *Jwt) init() {
-	p.signedMethod = jwt.GetSigningMethod(p.SigningMethod)
-	if p.signedMethod == nil {
+	p.signingMethod = jwt.GetSigningMethod(p.SigningMethod)
+	if p.signingMethod == nil {
 		panic(fmt.Sprintf("jwt not support SigningMethod: %s", p.SigningMethod))
 	}
 
@@ -32,13 +42,13 @@ func (p *Jwt) init() {
 	}
 	p.Expire = int64(time.Minute) * p.Expire
 
-	p.signKeyByte = []byte(p.SignKey)
+	p.signKey = []byte(p.SignKey)
 }
 
-func (p *Jwt) newClaims(user string) jwt.StandardClaims {
+func (p *Jwt) newClaims(user, ip string) jwt.StandardClaims {
 	var now = time.Now().Unix()
 	return jwt.StandardClaims{
-		Audience:  p.Audience,
+		Audience:  ip,
 		ExpiresAt: now + p.Expire,
 		Id:        user,
 		IssuedAt:  now,
@@ -48,21 +58,24 @@ func (p *Jwt) newClaims(user string) jwt.StandardClaims {
 	}
 }
 
-func (p *Jwt) CreateToken(user string) (string, error) {
-	var token = jwt.NewWithClaims(p.signedMethod, p.newClaims(user))
+func (p *Jwt) CreateToken(user, ip string) (string, error) {
+	var token = jwt.NewWithClaims(p.signingMethod, p.newClaims(user, ip))
 
-	return token.SignedString(p.signKeyByte)
+	return token.SignedString(p.signKey)
 }
 
-func (p *Jwt) Verify(tokenString string) (string, error) {
+func (p *Jwt) Verify(tokenString, ip string) (string, error) {
 	var token, err = jwt.ParseWithClaims(tokenString, jwt.StandardClaims{}, func(token *jwt.Token) (i interface{}, e error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
 		claims, ok := token.Claims.(*jwt.StandardClaims)
 		if !ok {
-			return nil, errors.New("Unexpected Claims Type")
+			return nil, errors.New("unexpected Claims Type")
+		}
+		if claims.Issuer != p.Issuer {
+			return nil, errors.New("unexpected Issuer")
 		}
 		if claims.Subject != p.Subject {
 			return nil, errors.New("unexpected Subject")
@@ -71,12 +84,11 @@ func (p *Jwt) Verify(tokenString string) (string, error) {
 			return nil, err
 		}
 
-		return p.signKeyByte, nil
+		return p.signKey, nil
 	})
 	if err != nil {
 		return "", fmt.Errorf("token parse failed, err: %v", err)
 	}
-
 	if token == nil {
 		return "", errors.New("token parse failed, token is nil")
 	}

@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	log.SetFlags(255)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
 func main() {

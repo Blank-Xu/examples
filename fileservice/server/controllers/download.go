@@ -1,11 +1,12 @@
 package controllers
 
 import (
-	"fmt"
-	"framework/fileservice/server/config"
 	"net/http"
 	"path/filepath"
-	"time"
+
+	"github.com/sirupsen/logrus"
+
+	"framework/fileservice/server/config"
 )
 
 func Download() http.HandlerFunc {
@@ -15,12 +16,6 @@ func Download() http.HandlerFunc {
 	)
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			now = time.Now()
-			log = newLogEntry(r)
-		)
-		log.Info("client request")
-
 		if r.Method != http.MethodGet {
 			http.Error(w, "", http.StatusMethodNotAllowed)
 			return
@@ -32,6 +27,7 @@ func Download() http.HandlerFunc {
 			return
 		}
 
+		var log = r.Context().Value("log").(*logrus.Entry)
 		log.Infof("download request filename: %s", filename)
 
 		downloadLimit <- struct{}{}
@@ -40,8 +36,5 @@ func Download() http.HandlerFunc {
 		}()
 
 		http.ServeFile(w, r, filepath.Join(cfg.WorkDir, filename))
-
-		log.WithField("latency", fmt.Sprintf("%v", time.Since(now))).
-			Info("done")
 	}
 }

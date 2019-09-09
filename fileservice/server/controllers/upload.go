@@ -7,7 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"framework/fileservice/server/config"
 )
@@ -18,12 +19,6 @@ func Upload() http.HandlerFunc {
 		uploadLimit = make(chan struct{}, cfg.DownloadLimit)
 	)
 	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			now = time.Now()
-			log = newLogEntry(r)
-		)
-		log.Info("client request")
-
 		switch r.Method {
 		case http.MethodPost, http.MethodPut:
 			var filename = r.FormValue("filename")
@@ -32,6 +27,7 @@ func Upload() http.HandlerFunc {
 				return
 			}
 
+			var log = r.Context().Value("log").(*logrus.Entry)
 			log.Infof("upload filename: %s", filename)
 
 			filename = filepath.Join(cfg.WorkDir, filename)
@@ -104,9 +100,6 @@ func Upload() http.HandlerFunc {
 
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(strconv.FormatInt(size, 10)))
-
-			log.WithField("latency", fmt.Sprintf("%v", time.Since(now))).
-				Info("done")
 		default:
 			http.Error(w, "", http.StatusMethodNotAllowed)
 		}

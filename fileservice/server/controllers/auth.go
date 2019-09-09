@@ -1,20 +1,55 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"framework/fileservice/server/config"
+	"framework/fileservice/server/utils"
 
 	"github.com/sirupsen/logrus"
 )
 
-func Auth(h http.HandlerFunc) http.HandlerFunc {
+func Auth(handlerFunc http.HandlerFunc) http.HandlerFunc {
+	var jwt = config.Default.Jwt
 	return func(w http.ResponseWriter, r *http.Request) {
+		var (
+			now   = time.Now()
+			ip, _ = utils.GetIp(r)
+			token = r.Header.Get("Authorization")
+		)
+		// "Bearer "
+		if len(token) < 8 {
+			http.Error(w, "", http.StatusUnauthorized)
+			return
+		}
 
-		http.Error(w, "", http.StatusUnauthorized)
+		var user, err = jwt.Verify(token[7:], ip)
+		if err != nil {
+			http.Error(w, "", http.StatusUnauthorized)
+			logrus.Error("jwt verify failed, err: %v", err)
+			return
+		}
+		var (
+			log = logrus.NewEntry(logrus.StandardLogger()).WithFields(
+				logrus.Fields{
+					"method": r.Method,
+					"ip":     ip,
+					"url":    r.RequestURI,
+					"user":   user,
+				})
+
+			ctx = context.WithValue(r.Context(), "log", log)
+		)
+		log.Info("client request")
+
+		handlerFunc(w, r.WithContext(ctx))
+
+		log.WithField("latency", fmt.Sprintf("%v", time.Since(now))).
+			Info("done")
 	}
 }
 
@@ -25,16 +60,20 @@ func Login() http.HandlerFunc {
 	}
 
 	var jwt = config.Default.Jwt
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			now = time.Now()
-			log = newLogEntry(r)
+			now   = time.Now()
+			ip, _ = utils.GetIp(r)
+			log   = logrus.NewEntry(logrus.StandardLogger()).WithFields(
+				logrus.Fields{
+					"method": r.Method,
+					"ip":     ip,
+					"url":    r.RequestURI,
+				})
 
 			req    request
 			isJson bool
 		)
-		log.Info("login request")
 
 		switch r.Method {
 		case http.MethodGet:
@@ -46,7 +85,7 @@ func Login() http.HandlerFunc {
 			if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
 				if err := r.ParseForm(); err != nil {
 					http.Error(w, "params invalid", http.StatusBadRequest)
-					logrus.Errorf("parse form failed, err: %v", err)
+					log.Errorf("parse form failed, err: %v", err)
 					return
 				}
 				req.Username = r.PostForm.Get("username")
@@ -55,7 +94,7 @@ func Login() http.HandlerFunc {
 				// json提交
 				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 					http.Error(w, "params invalid", http.StatusBadRequest)
-					logrus.Errorf("decode login request failed, err: %v", err)
+					log.Errorf("decode login request failed, err: %v", err)
 					return
 				}
 				isJson = true
@@ -71,10 +110,10 @@ func Login() http.HandlerFunc {
 		}
 
 		if req.Username == "test" && req.Password == "test" {
-			token, err := jwt.CreateToken(req.Username)
+			token, err := jwt.CreateToken(req.Username, ip)
 			if err != nil {
 				http.Error(w, "", http.StatusInternalServerError)
-				logrus.Errorf("create token failed, err: %v", err)
+				log.Errorf("create token failed, err: %v", err)
 				return
 			}
 

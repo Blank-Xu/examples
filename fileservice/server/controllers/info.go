@@ -2,11 +2,9 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -29,12 +27,6 @@ func Info() http.HandlerFunc {
 		md5Limit = make(chan struct{}, cfg.FileMd5Limit)
 	)
 	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			now = time.Now()
-			log = newLogEntry(r)
-		)
-		log.Info("client request")
-
 		var filename = r.FormValue("filename")
 		if len(filename) == 0 {
 			http.Error(w, "", http.StatusBadGateway)
@@ -46,6 +38,7 @@ func Info() http.HandlerFunc {
 			http.ServeFile(w, r, filepath.Join(cfg.WorkDir, filename))
 
 		case http.MethodGet:
+			var log = r.Context().Value("log").(*logrus.Entry)
 			log.Infof("info request filename: %s", filename)
 
 			var lfilename = filepath.Join(cfg.WorkDir, filename)
@@ -69,7 +62,7 @@ func Info() http.HandlerFunc {
 				mfile, _ := os.OpenFile(lfilename, os.O_RDONLY, 0666)
 				if mfile == nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
-					logrus.Error(err)
+					log.Error(err)
 					return
 				}
 				defer mfile.Close()
@@ -77,7 +70,7 @@ func Info() http.HandlerFunc {
 				md5, err = utils.Md5File(mfile)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
-					logrus.Error(err)
+					log.Error(err)
 					return
 				}
 			}
@@ -96,13 +89,9 @@ func Info() http.HandlerFunc {
 
 			if err = json.NewEncoder(w).Encode(resp); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
-
 				log.Errorf("info json encode failed, err: %v", err)
 				return
 			}
-
-			log.WithField("latency", fmt.Sprintf("%v", time.Since(now))).
-				Info("done")
 		default:
 			http.Error(w, "", http.StatusMethodNotAllowed)
 		}

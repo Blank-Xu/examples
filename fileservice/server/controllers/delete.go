@@ -1,23 +1,17 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"framework/fileservice/server/config"
 )
 
 func Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			now = time.Now()
-			log = newLogEntry(r)
-		)
-		log.Info("client request")
-
 		switch r.Method {
 		case http.MethodPost, http.MethodDelete:
 			var filename = r.FormValue("filename")
@@ -26,6 +20,7 @@ func Delete() http.HandlerFunc {
 				return
 			}
 
+			var log = r.Context().Value("log").(*logrus.Entry)
 			log.Infof("delete request filename: %s", filename)
 
 			filename = filepath.Join(config.Default.FileConfig.WorkDir, filename)
@@ -38,9 +33,6 @@ func Delete() http.HandlerFunc {
 				return
 			}
 			log.Infof("delete file success, filename: %s", filename)
-
-			log.WithField("latency", fmt.Sprintf("%v", time.Since(now))).
-				Info("done")
 		default:
 			http.Error(w, "", http.StatusMethodNotAllowed)
 		}

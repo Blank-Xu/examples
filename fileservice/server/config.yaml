@@ -18,12 +18,13 @@ file_config:
   file_md5_limit: 50 # 并发获取md5人数，防止内存占满
 
 jwt:
-  audience:
   issure: fileserver
-  subject:
+  subject: auth
   expire: 30 # 过期时间，单位：分钟
   sign_key: fileserver_key
   signing_method: HS256
+  username: test
+  password: test
 
 time_zone:
   name: UTC
