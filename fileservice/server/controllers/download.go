@@ -1,4 +1,4 @@
-package file
+package controllers
 
 import (
 	"fmt"
@@ -22,19 +22,17 @@ func Download() http.HandlerFunc {
 		log.Info("client request")
 
 		if r.Method != http.MethodGet {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			http.Error(w, "", http.StatusMethodNotAllowed)
 			return
 		}
 
 		var filename = r.FormValue("filename")
 		if len(filename) == 0 {
-			w.WriteHeader(http.StatusBadGateway)
+			http.Error(w, "", http.StatusBadGateway)
 			return
 		}
 
 		log.Infof("download request filename: %s", filename)
-
-		// check auth
 
 		downloadLimit <- struct{}{}
 		defer func() {

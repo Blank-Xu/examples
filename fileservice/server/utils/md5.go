@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 
 	"github.com/pkg/errors"
@@ -32,4 +33,12 @@ func Md5File(file *os.File) (string, error) {
 	}
 
 	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+func Md5Filename(filename string) (string, error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return "", err
+	}
+	return Md5Bytes(data), nil
 }

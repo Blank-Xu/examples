@@ -1,4 +1,4 @@
-package file
+package controllers
 
 import (
 	"encoding/json"
@@ -15,6 +15,15 @@ import (
 )
 
 func Info() http.HandlerFunc {
+	type response struct {
+		Name            string `json:"name"`
+		Size            int64  `json:"size"`
+		ModTime         int64  `json:"mod_time"`
+		Md5             string `json:"md5"`
+		UploadMaxSize   int64  `json:"upload_max_size"`
+		UploadChunkSize int64  `json:"upload_chunk_size"`
+	}
+
 	var (
 		cfg      = config.Default.FileConfig
 		md5Limit = make(chan struct{}, cfg.FileMd5Limit)
@@ -28,7 +37,7 @@ func Info() http.HandlerFunc {
 
 		var filename = r.FormValue("filename")
 		if len(filename) == 0 {
-			w.WriteHeader(http.StatusBadGateway)
+			http.Error(w, "", http.StatusBadGateway)
 			return
 		}
 
@@ -43,11 +52,9 @@ func Info() http.HandlerFunc {
 			file, err := os.Stat(lfilename)
 			if err != nil {
 				if os.IsNotExist(err) {
-					w.WriteHeader(http.StatusNotFound)
-					w.Write([]byte(http.StatusText(http.StatusNotFound)))
+					http.NotFound(w, r)
 				} else {
-					w.WriteHeader(http.StatusBadRequest)
-					w.Write([]byte(err.Error()))
+					http.Error(w, err.Error(), http.StatusBadRequest)
 				}
 				return
 			}
@@ -61,8 +68,7 @@ func Info() http.HandlerFunc {
 
 				mfile, _ := os.OpenFile(lfilename, os.O_RDONLY, 0666)
 				if mfile == nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(err.Error()))
+					http.Error(w, err.Error(), http.StatusInternalServerError)
 					logrus.Error(err)
 					return
 				}
@@ -70,14 +76,13 @@ func Info() http.HandlerFunc {
 
 				md5, err = utils.Md5File(mfile)
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(err.Error()))
+					http.Error(w, err.Error(), http.StatusInternalServerError)
 					logrus.Error(err)
 					return
 				}
 			}
 
-			var resp = infoResponse{
+			var resp = response{
 				Name:            file.Name(),
 				Size:            file.Size(),
 				ModTime:         file.ModTime().Unix(),
@@ -90,8 +95,7 @@ func Info() http.HandlerFunc {
 			w.WriteHeader(http.StatusOK)
 
 			if err = json.NewEncoder(w).Encode(resp); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 
 				log.Errorf("info json encode failed, err: %v", err)
 				return
@@ -100,16 +104,7 @@ func Info() http.HandlerFunc {
 			log.WithField("latency", fmt.Sprintf("%v", time.Since(now))).
 				Info("done")
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			http.Error(w, "", http.StatusMethodNotAllowed)
 		}
 	}
-}
-
-type infoResponse struct {
-	Name            string `json:"name"`
-	Size            int64  `json:"size"`
-	ModTime         int64  `json:"mod_time"`
-	Md5             string `json:"md5"`
-	UploadMaxSize   int64  `json:"upload_max_size"`
-	UploadChunkSize int64  `json:"upload_chunk_size"`
 }

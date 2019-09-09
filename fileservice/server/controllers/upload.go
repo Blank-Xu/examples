@@ -1,4 +1,4 @@
-package file
+package controllers
 
 import (
 	"fmt"
@@ -26,12 +26,9 @@ func Upload() http.HandlerFunc {
 
 		switch r.Method {
 		case http.MethodPost, http.MethodPut:
-			// auth
-
 			var filename = r.FormValue("filename")
 			if len(filename) == 0 {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("params invalid"))
+				http.Error(w, "params invalid", http.StatusBadRequest)
 				return
 			}
 
@@ -46,14 +43,12 @@ func Upload() http.HandlerFunc {
 				err error
 			)
 			if _, err = fmt.Sscanf(r.Header.Get("Range"), "bytes=%d-%d", &start, &end); err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(err.Error()))
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				log.Errorf("upload failed, err: %v", err)
 				return
 			}
 			if end == 0 || start >= end {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("range param invalid"))
+				http.Error(w, "range param invalid", http.StatusBadRequest)
 				log.Error("upload failed, err: range param invalid")
 				return
 			}
@@ -63,8 +58,7 @@ func Upload() http.HandlerFunc {
 			log.Infof("upload length: %d, start: %d, end: %d", contentLength, start, end)
 
 			if contentLength != (end-start+1) || contentLength > cfg.UploadChunkSize {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("range size invalid"))
+				http.Error(w, "range size invalid", http.StatusBadRequest)
 				log.Error("upload failed, err: range size invalid")
 				return
 			}
@@ -72,8 +66,7 @@ func Upload() http.HandlerFunc {
 			var file *os.File
 			file, err = os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(err.Error()))
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				log.Errorf("upload failed, open filename[%s] err: %v", filename, err)
 				return
 			}
@@ -81,14 +74,12 @@ func Upload() http.HandlerFunc {
 
 			info, _ := file.Stat()
 			if info.Size() > cfg.UploadMaxSize {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(fmt.Sprintf("upload size to large, allow size: %d", cfg.UploadMaxSize)))
+				http.Error(w, fmt.Sprintf("upload size to large, allow size: %d", cfg.UploadMaxSize), http.StatusBadRequest)
 				log.Errorf("upload size to large, filename: %s, size: %d", info.Name(), info.Size())
 				return
 			}
 			if info.Size() != start {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte("range start invalid"))
+				http.Error(w, "range start invalid", http.StatusBadRequest)
 				log.Error("upload failed, err: range start invalid")
 				return
 			}
@@ -99,16 +90,14 @@ func Upload() http.HandlerFunc {
 			}()
 
 			if _, err = file.Seek(start, 2); err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(err.Error()))
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				log.Errorf("upload failed, seek err: %v", err)
 				return
 			}
 
 			size, err := io.CopyN(file, r.Body, contentLength)
 			if err != nil && err != io.EOF {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(err.Error()))
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				log.Errorf("upload failed, copy err: %v", err)
 				return
 			}
@@ -119,8 +108,7 @@ func Upload() http.HandlerFunc {
 			log.WithField("latency", fmt.Sprintf("%v", time.Since(now))).
 				Info("done")
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
+			http.Error(w, "", http.StatusMethodNotAllowed)
 		}
 	}
 }

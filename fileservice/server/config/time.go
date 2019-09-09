@@ -10,6 +10,6 @@ type TimeZone struct {
 }
 
 // 设置时区
-func initTime(cfg TimeZone) {
-	time.FixedZone(cfg.Name, cfg.Offset*3600)
+func (p *TimeZone) init() {
+	time.FixedZone(p.Name, p.Offset*3600)
 }

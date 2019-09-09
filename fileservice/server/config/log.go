@@ -10,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type LogConfig struct {
+type Log struct {
 	WorkDir      string `yaml:"work_dir"`
 	WriteFile    bool   `yaml:"write_file"`
 	Filename     string `yaml:"filename"`
@@ -22,31 +22,31 @@ type LogConfig struct {
 	JsonFormat   bool   `yaml:"json_format"`
 }
 
-func initLog(cfg LogConfig) {
+func (p *Log) init() {
 	var format logrus.Formatter
-	if cfg.JsonFormat {
-		format = &logrus.JSONFormatter{TimestampFormat: cfg.TimeFormat}
+	if p.JsonFormat {
+		format = &logrus.JSONFormatter{TimestampFormat: p.TimeFormat}
 	} else {
-		format = &logrus.TextFormatter{TimestampFormat: cfg.TimeFormat}
+		format = &logrus.TextFormatter{TimestampFormat: p.TimeFormat}
 	}
 	logrus.SetFormatter(format)
 
-	logrus.SetReportCaller(cfg.ReportCaller)
+	logrus.SetReportCaller(p.ReportCaller)
 
-	if cfg.WriteFile {
-		if len(cfg.WorkDir) > 0 {
-			if err := utils.MkdirAll(cfg.WorkDir); err != nil {
-				log.Printf("mkdir [%s] failed, err: %v", cfg.WorkDir, err)
+	if p.WriteFile {
+		if len(p.WorkDir) > 0 {
+			if err := utils.MkdirAll(p.WorkDir); err != nil {
+				log.Printf("mkdir [%s] failed, err: %v", p.WorkDir, err)
 				panic(err)
 			}
 		}
 
-		var filename = filepath.Join(cfg.WorkDir, cfg.Filename)
+		var filename = filepath.Join(p.WorkDir, p.Filename)
 		rotate, err := rotatelogs.New(
 			filename,
-			rotatelogs.WithLinkName(filepath.Join(cfg.WorkDir, cfg.Linkname)),
-			rotatelogs.WithRotationTime(time.Hour*time.Duration(cfg.RotationTime)),
-			rotatelogs.WithMaxAge(time.Hour*time.Duration(24*cfg.MaxAge)),
+			rotatelogs.WithLinkName(filepath.Join(p.WorkDir, p.Linkname)),
+			rotatelogs.WithRotationTime(time.Hour*time.Duration(p.RotationTime)),
+			rotatelogs.WithMaxAge(time.Hour*time.Duration(24*p.MaxAge)),
 			rotatelogs.WithLocation(time.Local),
 		)
 		if err != nil {

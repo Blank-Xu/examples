@@ -3,13 +3,12 @@ package config
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
-	"framework/fileservice/server/utils"
-
 	"github.com/sirupsen/logrus"
-	yaml "gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -19,10 +18,11 @@ var (
 )
 
 type config struct {
-	Server     server     `yaml:"server"`
-	FileConfig FileConfig `yaml:"file_config"`
-	TimeZone   TimeZone   `yaml:"time_zone"`
-	LogConfig  LogConfig  `yaml:"log"`
+	Server     *Server     `yaml:"server"`
+	FileConfig *FileConfig `yaml:"file_config"`
+	Jwt        *Jwt        `yaml:"jwt"`
+	TimeZone   *TimeZone   `yaml:"time_zone"`
+	Log        *Log        `yaml:"log"`
 }
 
 func Init() {
@@ -34,45 +34,22 @@ func Init() {
 	if err != nil {
 		panic(fmt.Sprintf("open config file failed, err: %v", err))
 	}
+	defer file.Close()
 
 	var cfg config
 	if err = yaml.NewDecoder(file).Decode(&cfg); err != nil {
 		panic(fmt.Sprintf("decode config file failed, err: %v", err))
 	}
 
-	initTime(cfg.TimeZone)
-	initLog(cfg.LogConfig)
+	cfg.TimeZone.init()
+	cfg.Log.init()
+	cfg.Server.init()
+	cfg.FileConfig.init()
+	cfg.Jwt.init()
+
+	log.SetOutput(io.MultiWriter(os.Stdout, logrus.StandardLogger().Writer()))
 
 	Default = &cfg
-	defaultCheck()
 
 	logrus.Info("load config success")
-}
-
-func defaultCheck() {
-	if Default.Server.Port == 0 {
-		Default.Server.Port = 8080
-	}
-
-	if len(Default.FileConfig.WorkDir) == 0 {
-		Default.FileConfig.WorkDir = "files"
-	}
-
-	if err := utils.MkdirAll(Default.FileConfig.WorkDir); err != nil {
-		if !os.IsExist(err) {
-			panic(fmt.Sprintf("mkdir[%s] failed, err: %v", Default.FileConfig.WorkDir, err))
-		}
-	}
-
-	if Default.FileConfig.UploadMaxSize == 0 {
-		Default.FileConfig.UploadMaxSize = defaultMaxSize
-	} else {
-		Default.FileConfig.UploadMaxSize *= 1024 * 1024
-	}
-
-	if Default.FileConfig.UploadChunkSize == 0 {
-		Default.FileConfig.UploadChunkSize = defaultChunkSize
-	} else {
-		Default.FileConfig.UploadChunkSize *= 1024 * 1024
-	}
 }

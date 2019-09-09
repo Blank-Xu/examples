@@ -17,6 +17,14 @@ file_config:
   download_limit: 50 # 并发下载人数限制
   file_md5_limit: 50 # 并发获取md5人数，防止内存占满
 
+jwt:
+  audience:
+  issure: fileserver
+  subject:
+  expire: 30 # 过期时间，单位：分钟
+  sign_key: fileserver_key
+  signing_method: HS256
+
 time_zone:
   name: UTC
   offset: 8 # 时区

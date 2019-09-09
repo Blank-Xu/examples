@@ -1,4 +1,4 @@
-package file
+package controllers
 
 import (
 	"fmt"
@@ -22,22 +22,18 @@ func Delete() http.HandlerFunc {
 		case http.MethodPost, http.MethodDelete:
 			var filename = r.FormValue("filename")
 			if len(filename) == 0 {
-				w.WriteHeader(http.StatusBadGateway)
+				http.Error(w, "", http.StatusBadGateway)
 				return
 			}
 
 			log.Infof("delete request filename: %s", filename)
 
-			// check auth
-
 			filename = filepath.Join(config.Default.FileConfig.WorkDir, filename)
 			if err := os.Remove(filename); err != nil {
 				if os.IsNotExist(err) {
-					w.WriteHeader(http.StatusNotFound)
-					w.Write([]byte(http.StatusText(http.StatusNotFound)))
+					http.NotFound(w, r)
 				} else {
-					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(err.Error()))
+					http.Error(w, err.Error(), http.StatusInternalServerError)
 				}
 				return
 			}
@@ -46,7 +42,7 @@ func Delete() http.HandlerFunc {
 			log.WithField("latency", fmt.Sprintf("%v", time.Since(now))).
 				Info("done")
 		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			http.Error(w, "", http.StatusMethodNotAllowed)
 		}
 	}
 }

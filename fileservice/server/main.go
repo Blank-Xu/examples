@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -10,10 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"framework/fileservice/server/config"
-	"framework/fileservice/server/file"
+	"framework/fileservice/server/controllers"
 )
 
 func init() {
@@ -23,7 +20,7 @@ func init() {
 func main() {
 	defer func() {
 		if err := recover(); err != nil {
-			logrus.Errorf("process crashed with error, err: %v", err)
+			log.Printf("process crashed with error, err: %v", err)
 			// 等待日志记录完成
 			time.Sleep(time.Second * 3)
 			panic(err)
@@ -34,41 +31,22 @@ func main() {
 	config.Init()
 
 	// 注册路由
-	http.HandleFunc("/auth", file.Auth())
-	http.HandleFunc("/info", file.Info())
-	http.HandleFunc("/upload", file.Upload())
-	http.HandleFunc("/download", file.Download())
-	http.HandleFunc("/delete", file.Delete())
+	http.HandleFunc("/", controllers.Login())
+	http.HandleFunc("/info", controllers.Auth(controllers.Info()))
+	http.HandleFunc("/upload", controllers.Auth(controllers.Upload()))
+	http.HandleFunc("/download", controllers.Auth(controllers.Download()))
+	http.HandleFunc("/delete", controllers.Auth(controllers.Delete()))
 
 	var (
-		cfg = config.Default.Server
-
-		addr = fmt.Sprintf("%s:%d", cfg.IP, cfg.Port)
-
-		server = http.Server{
-			Addr:         addr,
-			Handler:      http.DefaultServeMux,
-			ReadTimeout:  time.Second * time.Duration(cfg.ReadTimeout),
-			WriteTimeout: time.Second * time.Duration(cfg.WriteTimeout),
-			IdleTimeout:  time.Second * time.Duration(cfg.IdleTimeout),
-		}
-
-		pid = os.Getpid()
-
-		msg = fmt.Sprintf("server pid[%d] start, version: [%s], addr: [%s]", pid, config.VERSION, addr)
+		pid    = os.Getpid()
+		server = config.Default.Server.NewServer(http.DefaultServeMux)
 	)
-	logrus.Info(msg)
-	log.Printf(msg)
-
-	http.DefaultTransport.(*http.Transport).MaxConnsPerHost = cfg.MaxConnsPerHost
-	http.DefaultTransport.(*http.Transport).MaxIdleConns = cfg.MaxIdleConns
-	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = cfg.MaxIdleConnsPerHost
 
 	go func() {
+		log.Printf("server pid[%d] start, version: [%s], addr: [%s]", pid, config.VERSION, server.Addr)
+
 		if err := server.ListenAndServe(); err != nil {
-			msg = fmt.Sprintf("server pid[%d] exit with err: %v", pid, err)
-			logrus.Error(msg)
-			log.Print(msg)
+			log.Printf("server pid[%d] exit with err: %v", pid, err)
 		}
 	}()
 
@@ -78,22 +56,16 @@ func main() {
 	var signalMsg = <-quitSignal
 	close(quitSignal)
 
-	msg = fmt.Sprintf("server pid[%d] received shutdown signal: [%v]", pid, signalMsg)
-	logrus.Warn(msg)
-	log.Print(msg)
+	log.Printf("server pid[%d] received shutdown signal: [%v]", pid, signalMsg)
 
 	var ctx, cancel = context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		msg = fmt.Sprintf("server pid[%d] shutdown failed, err: %v", pid, err)
-		logrus.Error(msg)
-		log.Print(msg)
+		log.Printf("server pid[%d] shutdown failed, err: %v", pid, err)
 	}
 
 	<-ctx.Done()
 
-	msg = fmt.Sprintf("server pid[%d] stoped", pid)
-	logrus.Warn(msg)
-	log.Print(msg)
+	log.Printf("server pid[%d] stoped", pid)
 }
