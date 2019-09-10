@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-
 	"framework/fileservice/server/config"
 	"framework/fileservice/server/utils"
 )
@@ -38,8 +36,8 @@ func Info() http.HandlerFunc {
 			http.ServeFile(w, r, filepath.Join(cfg.WorkDir, filename))
 
 		case http.MethodGet:
-			var log = r.Context().Value("log").(*logrus.Entry)
-			log.Infof("info request filename: %s", filename)
+			var ctx = r.Context().Value(ContextKey).(*ContextValue)
+			ctx.Log.Infof("info request filename: %s", filename)
 
 			var lfilename = filepath.Join(cfg.WorkDir, filename)
 			file, err := os.Stat(lfilename)
@@ -62,7 +60,7 @@ func Info() http.HandlerFunc {
 				mfile, _ := os.OpenFile(lfilename, os.O_RDONLY, 0666)
 				if mfile == nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
-					log.Error(err)
+					ctx.Log.Error(err)
 					return
 				}
 				defer mfile.Close()
@@ -70,7 +68,7 @@ func Info() http.HandlerFunc {
 				md5, err = utils.Md5File(mfile)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
-					log.Error(err)
+					ctx.Log.Error(err)
 					return
 				}
 			}
@@ -89,7 +87,7 @@ func Info() http.HandlerFunc {
 
 			if err = json.NewEncoder(w).Encode(resp); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
-				log.Errorf("info json encode failed, err: %v", err)
+				ctx.Log.Errorf("info json encode failed, err: %v", err)
 				return
 			}
 		default:

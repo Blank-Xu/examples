@@ -20,15 +20,20 @@ func getRandom() (str string) {
 	return
 }
 
-func Download(host, filename string) error {
+func Download(host, filename, username, password string) error {
 	var lfilename = filepath.Join(workDir, getRandom())
 
-	file, err := os.OpenFile(lfilename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	file, err := os.OpenFile(lfilename, os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		return err
 	}
 
-	statusCode, sSize, err := InfoHead(host, filename)
+	token, err := Login(host, username, password)
+	if err != nil {
+		return err
+	}
+
+	statusCode, sSize, err := InfoHead(host, filename, token)
 	if err != nil {
 		return err
 	}
@@ -49,7 +54,7 @@ func Download(host, filename string) error {
 			size = chunkSize
 		}
 
-		if size, err = downloadChunk(host, filename, file, info.Size(), info.Size()+size-1); err != nil {
+		if size, err = downloadChunk(host, filename, token, file, info.Size(), info.Size()+size-1); err != nil {
 			return err
 		}
 
@@ -60,9 +65,10 @@ func Download(host, filename string) error {
 	return nil
 }
 
-func downloadChunk(host, filename string, file *os.File, start, end int64) (int64, error) {
+func downloadChunk(host, filename, token string, file *os.File, start, end int64) (int64, error) {
 	var req, _ = http.NewRequest(http.MethodGet, fmt.Sprintf("%s/download?filename=%s", host, filename), nil)
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	var httpClient = http.Client{Timeout: requestTimeout}
 	resp, err := httpClient.Do(req)

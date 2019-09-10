@@ -40,7 +40,7 @@ func (p *Jwt) init() {
 	if p.Expire <= 0 {
 		p.Expire = 10
 	}
-	p.Expire = int64(time.Minute) * p.Expire
+	p.Expire *= 60
 
 	p.signKey = []byte(p.SignKey)
 }
@@ -65,7 +65,7 @@ func (p *Jwt) CreateToken(user, ip string) (string, error) {
 }
 
 func (p *Jwt) Verify(tokenString, ip string) (string, error) {
-	var token, err = jwt.ParseWithClaims(tokenString, jwt.StandardClaims{}, func(token *jwt.Token) (i interface{}, e error) {
+	var token, err = jwt.ParseWithClaims(tokenString, &jwt.StandardClaims{}, func(token *jwt.Token) (i interface{}, e error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}

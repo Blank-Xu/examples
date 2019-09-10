@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-func Upload(host, filename string, safety ...bool) error {
+func Upload(host, filename, username, password string, safety ...bool) error {
 	file, err := os.OpenFile(filepath.Join(workDir, filename), os.O_RDONLY, 0666)
 	if err != nil {
 		return err
@@ -23,13 +23,18 @@ func Upload(host, filename string, safety ...bool) error {
 		safeUpload = true
 	}
 
+	token, err := Login(host, username, password)
+	if err != nil {
+		return err
+	}
+
 	var (
 		startSize int64
 
 		upfilename = getRandom()
 	)
 	if !safeUpload {
-		if _, startSize, err = InfoHead(host, upfilename); err != nil {
+		if _, startSize, err = InfoHead(host, upfilename, token); err != nil {
 			return err
 		}
 	}
@@ -43,7 +48,7 @@ func Upload(host, filename string, safety ...bool) error {
 
 	for {
 		if safeUpload {
-			if _, startSize, err = InfoHead(host, upfilename); err != nil {
+			if _, startSize, err = InfoHead(host, upfilename, token); err != nil {
 				return err
 			}
 		}
@@ -62,7 +67,7 @@ func Upload(host, filename string, safety ...bool) error {
 			return err
 		}
 
-		if size, err = uploadChunk(uploadUrl, bytes.NewReader(data), startSize, startSize-1+int64(size)); err != nil {
+		if size, err = uploadChunk(uploadUrl, token, bytes.NewReader(data), startSize, startSize-1+int64(size)); err != nil {
 			return err
 		}
 
@@ -74,9 +79,10 @@ func Upload(host, filename string, safety ...bool) error {
 	return nil
 }
 
-func uploadChunk(url string, body io.Reader, start, end int64) (int64, error) {
+func uploadChunk(url, token string, body io.Reader, start, end int64) (int64, error) {
 	var req, _ = http.NewRequest(http.MethodPost, url, body)
 	req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, end))
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	var httpClient = http.Client{Timeout: requestTimeout}
 	resp, err := httpClient.Do(req)

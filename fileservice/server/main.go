@@ -54,8 +54,6 @@ func main() {
 	signal.Notify(quitSignal, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
 	var signalMsg = <-quitSignal
-	close(quitSignal)
-
 	log.Printf("server pid[%d] received shutdown signal: [%v]", pid, signalMsg)
 
 	var ctx, cancel = context.WithTimeout(context.Background(), time.Second*3)

@@ -13,6 +13,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const ContextKey = "CtxKey"
+
+type ContextValue struct {
+	User string
+	Ip   string
+	Log  *logrus.Entry
+}
+
+// TODO: 可以加入 ip 请求次数检测，ip 白名单和黑名单验证
+
 func Auth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 	var jwt = config.Default.Jwt
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -29,10 +39,11 @@ func Auth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 
 		var user, err = jwt.Verify(token[7:], ip)
 		if err != nil {
-			http.Error(w, "", http.StatusUnauthorized)
-			logrus.Error("jwt verify failed, err: %v", err)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			logrus.Error(err)
 			return
 		}
+
 		var (
 			log = logrus.NewEntry(logrus.StandardLogger()).WithFields(
 				logrus.Fields{
@@ -42,13 +53,17 @@ func Auth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 					"user":   user,
 				})
 
-			ctx = context.WithValue(r.Context(), "log", log)
+			ctx = context.WithValue(r.Context(), ContextKey, &ContextValue{
+				User: user,
+				Ip:   ip,
+				Log:  log,
+			})
 		)
 		log.Info("client request")
 
 		handlerFunc(w, r.WithContext(ctx))
 
-		log.WithField("latency", fmt.Sprintf("%v", time.Since(now))).
+		log.WithField("latency", float64(time.Now().Sub(now).Nanoseconds())/1000000.0).
 			Info("done")
 	}
 }
@@ -109,10 +124,11 @@ func Login() http.HandlerFunc {
 			return
 		}
 
-		if req.Username == "test" && req.Password == "test" {
+		// TODO: 用户验证需要从数据库或其他配置表重新读取
+		if req.Username == jwt.Username && req.Password == jwt.Password {
 			token, err := jwt.CreateToken(req.Username, ip)
 			if err != nil {
-				http.Error(w, "", http.StatusInternalServerError)
+				http.Error(w, "create token failed", http.StatusInternalServerError)
 				log.Errorf("create token failed, err: %v", err)
 				return
 			}
@@ -127,6 +143,6 @@ func Login() http.HandlerFunc {
 			w.Write([]byte(token))
 		}
 
-		log.WithField("latency", time.Since(now)).Info("done")
+		log.WithField("latency", float64(time.Now().Sub(now).Nanoseconds())/1000000.0).Info("done")
 	}
 }

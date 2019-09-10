@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/sirupsen/logrus"
-
 	"framework/fileservice/server/config"
 )
 
@@ -27,11 +25,12 @@ func Upload() http.HandlerFunc {
 				return
 			}
 
-			var log = r.Context().Value("log").(*logrus.Entry)
-			log.Infof("upload filename: %s", filename)
+			var ctx = r.Context().Value(ContextKey).(*ContextValue)
+			ctx.Log.Infof("upload filename: %s", filename)
+
+			// TODO: 检查 ctx.User 是否有上传权限
 
 			filename = filepath.Join(cfg.WorkDir, filename)
-
 			var (
 				start int64
 				end   int64
@@ -40,22 +39,22 @@ func Upload() http.HandlerFunc {
 			)
 			if _, err = fmt.Sscanf(r.Header.Get("Range"), "bytes=%d-%d", &start, &end); err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
-				log.Errorf("upload failed, err: %v", err)
+				ctx.Log.Errorf("upload failed, err: %v", err)
 				return
 			}
 			if end == 0 || start >= end {
 				http.Error(w, "range param invalid", http.StatusBadRequest)
-				log.Error("upload failed, err: range param invalid")
+				ctx.Log.Error("upload failed, err: range param invalid")
 				return
 			}
 
 			var contentLength, _ = strconv.ParseInt(r.Header.Get("Content-Length"), 10, 64)
 
-			log.Infof("upload length: %d, start: %d, end: %d", contentLength, start, end)
+			ctx.Log.Infof("upload length: %d, start: %d, end: %d", contentLength, start, end)
 
 			if contentLength != (end-start+1) || contentLength > cfg.UploadChunkSize {
 				http.Error(w, "range size invalid", http.StatusBadRequest)
-				log.Error("upload failed, err: range size invalid")
+				ctx.Log.Error("upload failed, err: range size invalid")
 				return
 			}
 
@@ -63,7 +62,7 @@ func Upload() http.HandlerFunc {
 			file, err = os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
-				log.Errorf("upload failed, open filename[%s] err: %v", filename, err)
+				ctx.Log.Errorf("upload failed, open filename[%s] err: %v", filename, err)
 				return
 			}
 			defer file.Close()
@@ -71,12 +70,12 @@ func Upload() http.HandlerFunc {
 			info, _ := file.Stat()
 			if info.Size() > cfg.UploadMaxSize {
 				http.Error(w, fmt.Sprintf("upload size to large, allow size: %d", cfg.UploadMaxSize), http.StatusBadRequest)
-				log.Errorf("upload size to large, filename: %s, size: %d", info.Name(), info.Size())
+				ctx.Log.Errorf("upload size to large, filename: %s, size: %d", info.Name(), info.Size())
 				return
 			}
 			if info.Size() != start {
 				http.Error(w, "range start invalid", http.StatusBadRequest)
-				log.Error("upload failed, err: range start invalid")
+				ctx.Log.Error("upload failed, err: range start invalid")
 				return
 			}
 
@@ -87,14 +86,14 @@ func Upload() http.HandlerFunc {
 
 			if _, err = file.Seek(start, 2); err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
-				log.Errorf("upload failed, seek err: %v", err)
+				ctx.Log.Errorf("upload failed, seek err: %v", err)
 				return
 			}
 
 			size, err := io.CopyN(file, r.Body, contentLength)
 			if err != nil && err != io.EOF {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
-				log.Errorf("upload failed, copy err: %v", err)
+				ctx.Log.Errorf("upload failed, copy err: %v", err)
 				return
 			}
 

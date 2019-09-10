@@ -10,6 +10,9 @@ import (
 var (
 	host     = flag.String("h", "http://127.0.0.1:8080", "file server host")
 	filename = flag.String("f", "1.wmv", "test filename")
+
+	username = flag.String("u", "test", "username")
+	password = flag.String("p", "test", "password")
 )
 
 func TestDownload(t *testing.T) {
@@ -26,7 +29,7 @@ func TestDownload(t *testing.T) {
 		}
 	}
 
-	if err = Download(*host, *filename); err != nil {
+	if err = Download(*host, *filename, *username, *password); err != nil {
 		t.Fatal(err)
 	}
 
@@ -49,7 +52,7 @@ func BenchmarkDownload(b *testing.B) {
 		}
 
 		b.StartTimer()
-		if err = Download(*host, *filename); err != nil {
+		if err = Download(*host, *filename, *username, *password); err != nil {
 			b.Fatal(err)
 		}
 		b.StopTimer()

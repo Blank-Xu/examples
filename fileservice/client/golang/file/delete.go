@@ -7,13 +7,24 @@ import (
 	"net/http"
 )
 
-func Delete(host, filename string) error {
+func Delete(host, filename, username, password string) error {
+	token, err := Login(host, username, password)
+	if err != nil {
+		return err
+	}
+
 	var (
 		httpClient = http.Client{Timeout: requestTimeout}
-
-		url = fmt.Sprintf("%s/delete?filename=%s", host, filename)
+		url        = fmt.Sprintf("%s/delete?filename=%s", host, filename)
 	)
-	resp, err := httpClient.PostForm(url, nil)
+
+	req, err := http.NewRequest(http.MethodPost, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}

@@ -5,8 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-
 	"framework/fileservice/server/config"
 )
 
@@ -20,9 +18,10 @@ func Delete() http.HandlerFunc {
 				return
 			}
 
-			var log = r.Context().Value("log").(*logrus.Entry)
-			log.Infof("delete request filename: %s", filename)
+			var ctx = r.Context().Value(ContextKey).(*ContextValue)
+			ctx.Log.Infof("delete request filename: %s", filename)
 
+			// TODO: 检查 ctx.User 是否有删除权限
 			filename = filepath.Join(config.Default.FileConfig.WorkDir, filename)
 			if err := os.Remove(filename); err != nil {
 				if os.IsNotExist(err) {
@@ -32,7 +31,7 @@ func Delete() http.HandlerFunc {
 				}
 				return
 			}
-			log.Infof("delete file success, filename: %s", filename)
+			ctx.Log.Infof("delete file success, filename: %s", filename)
 		default:
 			http.Error(w, "", http.StatusMethodNotAllowed)
 		}

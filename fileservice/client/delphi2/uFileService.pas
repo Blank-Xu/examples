@@ -17,6 +17,7 @@ type
       CONNECTION_TIMEOUT = 120 * 1000;
       RESPONSE_TIMEOUT = 120 * 1000;
       RANGE_BYTES = 'bytes=%d-%d';
+      URL_LOGIN = '%s?username=%s&password=%s';
       URL_INFO_HEAD = '%s/info?filename=%s';
       URL_INFO = '%s/info?filename=%s';
       URL_INFO_MD5 = '%s/info?filename=%s&md5=true';

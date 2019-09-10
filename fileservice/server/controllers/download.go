@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
-
 	"framework/fileservice/server/config"
 )
 
@@ -27,8 +25,10 @@ func Download() http.HandlerFunc {
 			return
 		}
 
-		var log = r.Context().Value("log").(*logrus.Entry)
-		log.Infof("download request filename: %s", filename)
+		var ctx = r.Context().Value(ContextKey).(*ContextValue)
+		ctx.Log.Infof("download request filename: %s", filename)
+
+		// TODO: 检查 ctx.User 是否有下载权限
 
 		downloadLimit <- struct{}{}
 		defer func() {

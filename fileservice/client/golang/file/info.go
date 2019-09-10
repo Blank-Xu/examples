@@ -30,7 +30,12 @@ type InfoResponse struct {
 	DownloadChunkSize int64  `json:"download_chunk_size"`
 }
 
-func Info(host, filename string, checkMd5 ...bool) (*InfoResponse, error) {
+func Info(host, filename, username, password string, checkMd5 ...bool) (*InfoResponse, error) {
+	var token, err = Login(host, username, password)
+	if err != nil {
+		return nil, err
+	}
+
 	var (
 		httpClient = http.Client{Timeout: requestTimeout}
 		url        string
@@ -40,7 +45,14 @@ func Info(host, filename string, checkMd5 ...bool) (*InfoResponse, error) {
 	} else {
 		url = fmt.Sprintf("%s/info?filename=%s", host, filename)
 	}
-	resp, err := httpClient.Get(url)
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +64,7 @@ func Info(host, filename string, checkMd5 ...bool) (*InfoResponse, error) {
 		err = json.NewDecoder(resp.Body).Decode(info)
 
 	case http.StatusBadGateway: // 不存在
+		err = fmt.Errorf("can't find file: %s", filename)
 
 	default: // 其他错误
 		var buf bytes.Buffer
@@ -64,12 +77,19 @@ func Info(host, filename string, checkMd5 ...bool) (*InfoResponse, error) {
 	return info, err
 }
 
-func InfoHead(host, filename string) (int, int64, error) {
+func InfoHead(host, filename, token string) (int, int64, error) {
 	var (
 		httpClient = http.Client{Timeout: requestTimeout}
 		url        = fmt.Sprintf("%s/info?filename=%s", host, filename)
 	)
-	resp, err := httpClient.Head(url)
+
+	req, err := http.NewRequest(http.MethodHead, url, nil)
+	if err != nil {
+		return 0, 0, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return 0, 0, err
 	}

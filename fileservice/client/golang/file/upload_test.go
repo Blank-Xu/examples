@@ -5,7 +5,7 @@ import (
 )
 
 func TestUpload(t *testing.T) {
-	if err := Upload(*host, *filename); err != nil {
+	if err := Upload(*host, *filename, *username, *password); err != nil {
 		t.Fatal(err)
 	}
 
@@ -14,7 +14,7 @@ func TestUpload(t *testing.T) {
 
 func BenchmarkUpload(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		if err := Upload(*host, *filename); err != nil {
+		if err := Upload(*host, *filename, *username, *password); err != nil {
 			b.Fatal(err)
 		}
 	}
