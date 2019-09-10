@@ -39,6 +39,9 @@ type
     pnl2: TPanel;
     lblInfo: TLabel;
     lblFile: TLabel;
+    edtUsername: TEdit;
+    edtPassword: TEdit;
+    btnLogin: TButton;
     procedure btnDownloadClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnUploadClick(Sender: TObject);
@@ -47,8 +50,9 @@ type
   private
     const
       FWorkDir = 'files';
-    var
-      FTotalSize: Int64;
+		var
+		FToken:string;
+			FTotalSize: Int64;
     procedure ProgressCallback(Sender: TObject; Processed: Int64; SIZE: Int64; ContentLength: Int64; TimeStart: Cardinal);
   public
 		{ Public declarations }
@@ -179,10 +183,10 @@ end;
 
 procedure TfrmMain.btnDownloadClick(Sender: TObject);
 begin
-  TThread.CreateAnonymousThread(
+	TThread.CreateAnonymousThread(
     procedure
     var
-      fmeDownload: TfmeDownloadFile;
+			fmeDownload: TfmeDownloadFile;
       Msg: string;
     begin
       fmeDownload := TfmeDownloadFile.Create(pnlPB, edtHost.Text, edtFileName.Text, FWorkDir);
@@ -266,7 +270,7 @@ end;
 procedure TfrmMain.ProgressCallback(Sender: TObject; Processed, Size, ContentLength: Int64; TimeStart: Cardinal);
 begin
 	TThread.Queue(nil,
-    procedure
+		procedure
     begin
       if Processed > pb.Max then
         pb.Value := pb.Max
