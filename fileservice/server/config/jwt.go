@@ -1,10 +1,9 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"time"
-
-	"github.com/pkg/errors"
 
 	jwt "github.com/dgrijalva/jwt-go"
 )

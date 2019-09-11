@@ -3,12 +3,11 @@ package utils
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-
-	"github.com/pkg/errors"
 )
 
 func Md5(data string) string {
@@ -29,7 +28,7 @@ func Md5File(file *os.File) (string, error) {
 	h := md5.New()
 
 	if _, err := io.Copy(h, file); err != nil {
-		return "", fmt.Errorf("md5 copy failed, err: %v", err)
+		return "", fmt.Errorf("io copy failed, err: %v", err)
 	}
 
 	return hex.EncodeToString(h.Sum(nil)), nil

@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"github.com/go-xorm/core"
 	"github.com/sirupsen/logrus"
+	"xorm.io/core"
 )
 
 type SimpleLogger struct {

@@ -18,10 +18,10 @@ var (
 )
 
 type config struct {
+	Fix        *Fix        `yaml:"fix"`
 	Server     *Server     `yaml:"server"`
 	FileConfig *FileConfig `yaml:"file_config"`
 	Jwt        *Jwt        `yaml:"jwt"`
-	TimeZone   *TimeZone   `yaml:"time_zone"`
 	Log        *Log        `yaml:"log"`
 }
 
@@ -41,7 +41,7 @@ func Init() {
 		panic(fmt.Sprintf("decode config file failed, err: %v", err))
 	}
 
-	cfg.TimeZone.init()
+	cfg.Fix.init()
 	cfg.Log.init()
 	cfg.Server.init()
 	cfg.FileConfig.init()

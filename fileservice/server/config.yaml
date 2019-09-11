@@ -26,9 +26,10 @@ jwt:
   username: test
   password: test
 
-time_zone:
-  name: UTC
-  offset: 8 # 时区
+fix:
+  time_zone:
+    name: UTC
+    offset: 8 # 时区
   
 log:
   work_dir: logs
