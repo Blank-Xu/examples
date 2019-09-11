@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"framework/fileservice/server/config"
+	"fileservice/server/config"
 )
 
 func Download() http.HandlerFunc {

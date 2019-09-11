@@ -1,7 +1,7 @@
 package config
 
 import (
-	"framework/fileservice/server/utils"
+	"fileservice/server/utils"
 	"log"
 	"path/filepath"
 	"time"

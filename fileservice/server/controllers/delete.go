@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"framework/fileservice/server/config"
+	"fileservice/server/config"
 )
 
 func Delete() http.HandlerFunc {

@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"framework/fileservice/server/config"
-	"framework/fileservice/server/utils"
+	"fileservice/server/config"
+	"fileservice/server/utils"
 )
 
 func Info() http.HandlerFunc {

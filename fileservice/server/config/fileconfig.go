@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"framework/fileservice/server/utils"
+	"fileservice/server/utils"
 )
 
 type FileConfig struct {

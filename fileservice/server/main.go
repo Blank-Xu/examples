@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"framework/fileservice/server/config"
-	"framework/fileservice/server/controllers"
+	"fileservice/server/config"
+	"fileservice/server/controllers"
 )
 
 func init() {

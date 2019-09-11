@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"framework/fileservice/server/config"
-	"framework/fileservice/server/utils"
+	"fileservice/server/config"
+	"fileservice/server/utils"
 
 	"github.com/sirupsen/logrus"
 )

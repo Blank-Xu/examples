@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"framework/fileservice/client/golang/file"
 	"log"
 	"sync"
 	"time"
+
+	"fileservice/client/golang/file"
 )
 
 var (

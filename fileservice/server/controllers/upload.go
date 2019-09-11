@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"framework/fileservice/server/config"
+	"fileservice/server/config"
 )
 
 func Upload() http.HandlerFunc {
