@@ -49,7 +49,7 @@ func Auth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 				logrus.Fields{
 					"method": r.Method,
 					"ip":     ip,
-					"url":    r.RequestURI,
+					"url":    r.URL.Path,
 					"user":   user,
 				})
 
@@ -59,12 +59,10 @@ func Auth(handlerFunc http.HandlerFunc) http.HandlerFunc {
 				Log:  log,
 			})
 		)
-		log.Info("client request")
 
 		handlerFunc(w, r.WithContext(ctx))
 
-		log.WithField("latency", float64(time.Now().Sub(now).Nanoseconds())/1000000.0).
-			Info("done")
+		log.WithField("latency", float64(time.Now().Sub(now).Nanoseconds())/1000000.0).Info("done")
 	}
 }
 
@@ -83,7 +81,7 @@ func Login() http.HandlerFunc {
 				logrus.Fields{
 					"method": r.Method,
 					"ip":     ip,
-					"url":    r.RequestURI,
+					"url":    r.URL.Path,
 				})
 
 			req    request
@@ -123,6 +121,8 @@ func Login() http.HandlerFunc {
 			http.Error(w, "params invalid", http.StatusBadRequest)
 			return
 		}
+
+		log = log.WithField("user", req.Username)
 
 		// TODO: 用户验证需要从数据库或其他配置表重新读取
 		if req.Username == jwt.Username && req.Password == jwt.Password {

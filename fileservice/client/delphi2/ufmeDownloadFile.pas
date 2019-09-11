@@ -35,7 +35,7 @@ type
     procedure SetStatus(ASize: Int64);
     procedure OnReceiveData(const Sender: TObject; AContentLength, AReadCount: Int64; var Abort: Boolean);
   public
-    constructor Create(AOwner: TComponent; const AHost, AFileName, AWorkDir: string);
+    constructor Create(AOwner: TComponent; const AHost, AToken, AFileName, AWorkDir: string);
     destructor Destroy; override;
     property StatusCode: Integer read GetStatusCode;
     property Error: string read FError;
@@ -51,7 +51,7 @@ uses
 
 { TfmeDownloadFile }
 
-constructor TfmeDownloadFile.Create(AOwner: TComponent; const AHost, AFileName, AWorkDir: string);
+constructor TfmeDownloadFile.Create(AOwner: TComponent; const AHost, AToken, AFileName, AWorkDir: string);
 begin
   inherited Create(AOwner);
 
@@ -69,6 +69,7 @@ begin
     end);
 
   FFileService := TFileService.Create(AOwner, AHost, AFileName);
+  FFileService.Token := AToken;
   FFileService.OnReceiveData := OnReceiveData;
 end;
 
@@ -90,7 +91,7 @@ begin
 
   FTotalSize := 0;
   try
-    if FFileService.InfoHead(FTotalSize) or (FFileService.StatusCode = 404) then
+    if FFileService.InfoHead(FTotalSize) then
     begin
       SetStatus(FTotalSize);
       LocalFileName := TPath.Combine(FWorkDir, FFileName);
@@ -100,7 +101,7 @@ begin
         else
           FStream := TFileStream.Create(LocalFileName, fmCreate or fmShareExclusive);
 
-				FStartSize :=  FStream.Size;
+        FStartSize := FStream.Size;
 				// 严格比较可以对比两个文件的md5
         if FTotalSize - FStartSize = 0 then
         begin

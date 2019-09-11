@@ -42,17 +42,22 @@ type
     edtUsername: TEdit;
     edtPassword: TEdit;
     btnLogin: TButton;
+    btnInfo: TButton;
     procedure btnDownloadClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnUploadClick(Sender: TObject);
     procedure btnDeleteClick(Sender: TObject);
     procedure btnDownload2Click(Sender: TObject);
+    procedure btnLoginClick(Sender: TObject);
+    procedure btnInfoClick(Sender: TObject);
   private
     const
       FWorkDir = 'files';
-		var
-		FToken:string;
-			FTotalSize: Int64;
+    var
+      FToken: string;
+      FTokenTime: TDateTime;
+      FTotalSize: Int64;
+    function CheckToken: Boolean;
     procedure ProgressCallback(Sender: TObject; Processed: Int64; SIZE: Int64; ContentLength: Int64; TimeStart: Cardinal);
   public
 		{ Public declarations }
@@ -65,15 +70,20 @@ implementation
 	{$R *.fmx}
 
 uses
-  uProgressFileStream;
+  uProgressFileStream,
+  DateUtils;
 
 procedure TfrmMain.btnDeleteClick(Sender: TObject);
 var
   fme: TFileService;
   msg: string;
 begin
+  if not CheckToken then
+    Exit;
+
   fme := TFileService.Create(nil, edtHost.Text, edtFileName.Text);
   try
+    fme.Token := FToken;
     if fme.DeleteFile then
       msg := 'delete success'
     else
@@ -93,6 +103,9 @@ var
   Host, FileName, LocalFileName: string;
   fme: TFileService;
 begin
+  if not CheckToken then
+    Exit;
+
   Host := edtHost.Text;
   FileName := edtFileName.Text;
   LocalFileName := TPath.Combine(FWorkDir, FileName);
@@ -108,6 +121,7 @@ begin
       try
         try
           fme := TFileService.Create(nil, Host, FileName);
+          fme.Token := FToken;
           if fme.InfoHead(FileName, FTotalSize) or (fme.StatusCode = 404) then
           begin
             try
@@ -183,13 +197,16 @@ end;
 
 procedure TfrmMain.btnDownloadClick(Sender: TObject);
 begin
-	TThread.CreateAnonymousThread(
+  if not CheckToken then
+    Exit;
+
+  TThread.CreateAnonymousThread(
     procedure
     var
-			fmeDownload: TfmeDownloadFile;
+      fmeDownload: TfmeDownloadFile;
       Msg: string;
     begin
-      fmeDownload := TfmeDownloadFile.Create(pnlPB, edtHost.Text, edtFileName.Text, FWorkDir);
+      fmeDownload := TfmeDownloadFile.Create(pnlPB, edtHost.Text, FToken, edtFileName.Text, FWorkDir);
       fmeDownload.Parent := pnlPB;
       fmeDownload.Visible := True;
 
@@ -221,15 +238,79 @@ begin
     end).Start;
 end;
 
+procedure TfrmMain.btnInfoClick(Sender: TObject);
+var
+  fs: TFileService;
+  MStream: TMemoryStream;
+  Stream: TStringStream;
+begin
+  if not CheckToken then
+    Exit;
+
+  fs := TFileService.Create(nil, edtHost.Text);
+  MStream := TMemoryStream.Create;
+  Stream := TStringStream.Create;
+  try
+    fs.Token := FToken;
+    if fs.Info(edtFileName.Text, MStream, True) then
+    begin
+      MStream.Position := 0;
+      Stream.LoadFromStream(MStream);
+      mmo.Lines.Add(Stream.DataString);
+    end
+    else
+      mmo.Lines.Add(Format('code: %d, msg: %s', [fs.StatusCode, fs.Error]));
+  finally
+    if Assigned(MStream) then
+      FreeAndNil(MStream);
+    if Assigned(Stream) then
+      FreeAndNil(Stream);
+    if Assigned(fs) then
+      FreeAndNil(fs);
+  end;
+end;
+
+procedure TfrmMain.btnLoginClick(Sender: TObject);
+var
+  fs: TFileService;
+  Username, Password: string;
+begin
+  if (Length(edtUsername.Text) = 0) or (Length(edtPassword.Text) = 0) then
+  begin
+    ShowMessage('请输入完整的用户名和密码！');
+    Exit;
+  end;
+
+  fs := TFileService.Create(nil, edtHost.Text);
+  try
+    if fs.Login(edtUsername.Text, edtPassword.Text) then
+    begin
+      FToken := fs.Token;
+      FTokenTime := Now;
+      mmo.Lines.Add('login success, token: ' + FToken);
+    end
+    else
+    begin
+      mmo.Lines.Add('login failed, err: ' + fs.Error);
+    end;
+  finally
+    if Assigned(fs) then
+      FreeAndNil(fs);
+  end;
+end;
+
 procedure TfrmMain.btnUploadClick(Sender: TObject);
 begin
+  if not CheckToken then
+    Exit;
+
   TThread.CreateAnonymousThread(
     procedure
     var
       fmeUpload: TfmeUploadFile;
       Msg: string;
     begin
-      fmeUpload := TfmeUploadFile.Create(pnlPB, edtHost.Text, edtFileName.Text, FWorkDir);
+      fmeUpload := TfmeUploadFile.Create(pnlPB, edtHost.Text, FToken, edtFileName.Text, FWorkDir);
       fmeUpload.Parent := pnlPB;
       fmeUpload.Visible := True;
 
@@ -261,6 +342,15 @@ begin
     end).Start;
 end;
 
+function TfrmMain.CheckToken: Boolean;
+begin
+  Result := True;
+	// token少于5分钟重新登录获取，避免下载大文件超时
+  if (Length(FToken) = 0) or (SecondsBetween(Now, FTokenTime) >= 25 * 30) then
+    Result := False;
+  mmo.Lines.Add('token expire seconds: ' + IntToStr(25 * 30 - SecondsBetween(Now, FTokenTime)));
+end;
+
 procedure TfrmMain.FormCreate(Sender: TObject);
 begin
   if not DirectoryExists(FWorkDir) then
@@ -269,8 +359,8 @@ end;
 
 procedure TfrmMain.ProgressCallback(Sender: TObject; Processed, Size, ContentLength: Int64; TimeStart: Cardinal);
 begin
-	TThread.Queue(nil,
-		procedure
+  TThread.Queue(nil,
+    procedure
     begin
       if Processed > pb.Max then
         pb.Value := pb.Max

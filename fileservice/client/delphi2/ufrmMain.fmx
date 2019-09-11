@@ -22,7 +22,7 @@ object frmMain: TfrmMain
       Text = 'http://127.0.0.1:8080'
       TextSettings.Font.Size = 14.000000000000000000
       TextSettings.Font.StyleExt = {00060000000000000004000000}
-      Size.Width = 185.000000000000000000
+      Size.Width = 180.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
       StyledSettings = [Family, FontColor]
@@ -34,49 +34,49 @@ object frmMain: TfrmMain
       Text = '1.wmv'
       TextSettings.Font.Size = 14.000000000000000000
       TextSettings.Font.StyleExt = {00060000000000000004000000}
-      Position.X = 185.000000000000000000
-      Size.Width = 104.000000000000000000
+      Position.X = 180.000000000000000000
+      Size.Width = 80.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
       StyledSettings = [Family, FontColor]
     end
     object btnDownload: TButton
       Align = MostLeft
-      Position.X = 497.000000000000000000
-      Size.Width = 85.000000000000000000
+      Position.X = 540.000000000000000000
+      Size.Width = 80.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 5
+      TabOrder = 6
       Text = 'btnDownload'
       OnClick = btnDownloadClick
     end
     object btnUpload: TButton
       Align = MostLeft
-      Position.X = 582.000000000000000000
-      Size.Width = 85.000000000000000000
+      Position.X = 620.000000000000000000
+      Size.Width = 80.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 6
+      TabOrder = 7
       Text = 'btnUpload'
       OnClick = btnUploadClick
     end
     object btnDelete: TButton
       Align = MostLeft
-      Position.X = 667.000000000000000000
-      Size.Width = 85.000000000000000000
+      Position.X = 700.000000000000000000
+      Size.Width = 80.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 7
+      TabOrder = 8
       Text = 'btnDelete'
       OnClick = btnDeleteClick
     end
     object btnDownload2: TButton
       Align = MostLeft
-      Position.X = 752.000000000000000000
-      Size.Width = 85.000000000000000000
+      Position.X = 780.000000000000000000
+      Size.Width = 80.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 8
+      TabOrder = 9
       Text = 'btnDownload2'
       OnClick = btnDownload2Click
     end
@@ -87,8 +87,8 @@ object frmMain: TfrmMain
       Text = 'test'
       TextSettings.Font.Size = 14.000000000000000000
       TextSettings.Font.StyleExt = {00060000000000000004000000}
-      Position.X = 289.000000000000000000
-      Size.Width = 64.000000000000000000
+      Position.X = 260.000000000000000000
+      Size.Width = 60.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
       StyledSettings = [Family, FontColor]
@@ -100,20 +100,31 @@ object frmMain: TfrmMain
       Text = 'test'
       TextSettings.Font.Size = 14.000000000000000000
       TextSettings.Font.StyleExt = {00060000000000000004000000}
-      Position.X = 353.000000000000000000
-      Size.Width = 64.000000000000000000
+      Position.X = 320.000000000000000000
+      Size.Width = 60.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
       StyledSettings = [Family, FontColor]
     end
     object btnLogin: TButton
       Align = MostLeft
-      Position.X = 417.000000000000000000
+      Position.X = 380.000000000000000000
+      Size.Width = 80.000000000000000000
+      Size.Height = 33.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = 'btnLogin'
+      OnClick = btnLoginClick
+    end
+    object btnInfo: TButton
+      Align = MostLeft
+      Position.X = 460.000000000000000000
       Size.Width = 80.000000000000000000
       Size.Height = 33.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 4
-      Text = 'btnLogin'
+      Text = 'btnInfo'
+      OnClick = btnInfoClick
     end
   end
   object mmo: TMemo

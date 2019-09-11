@@ -135,6 +135,8 @@ begin
       FResponse := Self.Post(url, SStream, RespStream, nil);
       if FResponse.StatusCode = 200 then
         Exit(True)
+      else if FResponse.StatusCode = 401 then
+        FError := 'need login'
       else if Assigned(RespStream) then
       begin
         SStream.Clear;
@@ -186,6 +188,8 @@ begin
         AFileStream.CopyFrom(RespStream, 0);
         Exit(True);
       end
+      else if FResponse.StatusCode = 401 then
+        FError := 'need login'
       else if Assigned(RespStream) then
       begin
         SStream := TStringStream.Create;
@@ -301,7 +305,11 @@ begin
   try
     FResponse := Self.Get(url, AFileInfoStream, nil);
     if FResponse.StatusCode = 200 then
-      Exit(True);
+      Exit(True)
+    else if FResponse.StatusCode = 401 then
+      FError := 'need login'
+    else
+      FError := 'server file not found';
   except
     on E: Exception do
       FError := E.Message;
@@ -336,6 +344,8 @@ begin
       FPassword := APassword;
       Result := True;
     end
+    else if FResponse.StatusCode = 401 then
+      FError := 'need login'
     else
       FError := RespStream.DataString;
   finally
@@ -362,6 +372,8 @@ begin
       ASize := FResponse.ContentLength;
       Exit(True);
     end
+    else if FResponse.StatusCode = 401 then
+      FError := 'need login'
     else
       FError := 'server file not found';
   except
@@ -408,6 +420,8 @@ begin
       begin
         Exit(True);
       end
+      else if FResponse.StatusCode = 401 then
+        FError := 'need login'
       else
       begin
         SStream := TStringStream.Create;

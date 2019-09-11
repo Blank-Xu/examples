@@ -32,7 +32,7 @@ type
       FTotalSize, FReadSize: Int64;
     function GetStatusCode: Integer;
   public
-    constructor Create(AOwner: TComponent; const AHost, AFileName, AWorkDir: string);
+    constructor Create(AOwner: TComponent; const AHost, AToken, AFileName, AWorkDir: string);
     destructor Destroy; override;
     property StatusCode: Integer read GetStatusCode;
     property Error: string read FError;
@@ -47,7 +47,7 @@ uses
   uTools;
 { TfmeUploadFile }
 
-constructor TfmeUploadFile.Create(AOwner: TComponent; const AHost, AFileName, AWorkDir: string);
+constructor TfmeUploadFile.Create(AOwner: TComponent; const AHost, AToken, AFileName, AWorkDir: string);
 begin
   inherited Create(AOwner);
 
@@ -58,13 +58,14 @@ begin
   TThread.Queue(nil,
     procedure
     begin
-			pb.Max := 1000;
+      pb.Max := 1000;
       pb.Value := 0;
       lblFile.Text := AFileName;
       lblInfo.Text := '0 KB/s';
     end);
 
   FFileService := TFileService.Create(AOwner, AHost, AFileName);
+  FFileService.Token := AToken;
 end;
 
 destructor TfmeUploadFile.Destroy;
