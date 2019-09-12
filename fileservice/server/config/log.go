@@ -30,7 +30,6 @@ func (p *Log) init() {
 		format = &logrus.TextFormatter{TimestampFormat: p.TimeFormat}
 	}
 	logrus.SetFormatter(format)
-
 	logrus.SetReportCaller(p.ReportCaller)
 
 	if p.WriteFile {

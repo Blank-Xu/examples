@@ -18,13 +18,16 @@ func init() {
 }
 
 func main() {
+	var pid = os.Getpid()
+
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("process crashed with error, err: %v", err)
+			log.Printf("server pid[%d] crashed with error, err: %v", pid, err)
 			// 等待日志记录完成
-			time.Sleep(time.Second * 3)
+			time.Sleep(time.Second)
 			panic(err)
 		}
+		time.Sleep(time.Second)
 	}()
 
 	// 解析配置
@@ -37,14 +40,10 @@ func main() {
 	http.HandleFunc("/download", controllers.Auth(controllers.Download()))
 	http.HandleFunc("/delete", controllers.Auth(controllers.Delete()))
 
-	var (
-		pid    = os.Getpid()
-		server = config.Default.Server.NewServer(http.DefaultServeMux)
-	)
+	var server = config.Default.Server.NewServer(http.DefaultServeMux)
 
 	go func() {
 		log.Printf("server pid[%d] start, version: [%s], addr: [%s]", pid, config.VERSION, server.Addr)
-
 		if err := server.ListenAndServe(); err != nil {
 			log.Printf("server pid[%d] exit with err: %v", pid, err)
 		}

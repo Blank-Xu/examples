@@ -26,5 +26,5 @@ func (p *TimeZone) init() {
 		p.Offset = 8
 	}
 
-	time.FixedZone(p.Name, p.Offset*3600)
+	time.Local = time.FixedZone(p.Name, p.Offset*3600)
 }
