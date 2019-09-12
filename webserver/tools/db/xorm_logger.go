@@ -1,85 +1,115 @@
-package utils
+package db
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
+
+	"go.uber.org/zap"
 	"xorm.io/core"
 )
 
 type SimpleLogger struct {
-	entry   *logrus.Entry
+	logger  *zap.Logger
 	level   core.LogLevel
 	showSQL bool
 }
 
-func NewSimpleLogger(log *logrus.Logger, database string, logLevel core.LogLevel) *SimpleLogger {
+func NewSimpleLogger(log *zap.Logger, database string, logLevel core.LogLevel) *SimpleLogger {
 	return &SimpleLogger{
-		entry: log.WithField("database", database),
-		level: logLevel,
+		logger: log.With(zap.Field{Key: "database", String: database}),
+		level:  logLevel,
 	}
 }
 
 // Error implement core.ILogger
 func (s *SimpleLogger) Error(v ...interface{}) {
-	if s.level <= core.LOG_ERR {
-		s.entry.Error(v...)
+	if s.level <= core.LOG_ERR && len(v) > 0 {
+		switch e := v[0].(type) {
+		case string:
+			s.logger.Error(e)
+		case error:
+			s.logger.Error(e.Error())
+		}
 	}
-	return
 }
 
 // Errorf implement core.ILogger
 func (s *SimpleLogger) Errorf(format string, v ...interface{}) {
 	if s.level <= core.LOG_ERR {
-		s.entry.Errorf(format, v...)
+		if len(v) > 0 {
+			s.logger.Error(fmt.Sprintf(format, v...))
+			return
+		}
+		s.logger.Error(format)
 	}
-	return
 }
 
 // Debug implement core.ILogger
 func (s *SimpleLogger) Debug(v ...interface{}) {
-	if s.level <= core.LOG_DEBUG {
-		s.entry.Debug(v...)
+	if s.level <= core.LOG_DEBUG && len(v) > 0 {
+		switch e := v[0].(type) {
+		case string:
+			s.logger.Debug(e)
+		case error:
+			s.logger.Debug(e.Error())
+		}
 	}
-	return
 }
 
 // Debugf implement core.ILogger
 func (s *SimpleLogger) Debugf(format string, v ...interface{}) {
 	if s.level <= core.LOG_DEBUG {
-		s.entry.Debugf(format, v...)
+		if len(v) > 0 {
+			s.logger.Debug(fmt.Sprintf(format, v...))
+			return
+		}
+		s.logger.Debug(format)
 	}
-	return
 }
 
 // Info implement core.ILogger
 func (s *SimpleLogger) Info(v ...interface{}) {
-	if s.level <= core.LOG_INFO {
-		s.entry.Info(v...)
+	if s.level <= core.LOG_INFO && len(v) > 0 {
+		switch e := v[0].(type) {
+		case string:
+			s.logger.Info(e)
+		case error:
+			s.logger.Info(e.Error())
+		}
 	}
-	return
 }
 
 // Infof implement core.ILogger
 func (s *SimpleLogger) Infof(format string, v ...interface{}) {
 	if s.level <= core.LOG_INFO {
-		s.entry.Infof(format, v...)
+		if len(v) > 0 {
+			s.logger.Info(fmt.Sprintf(format, v...))
+			return
+		}
+		s.logger.Info(format)
 	}
-	return
 }
 
 // Warn implement core.ILogger
 func (s *SimpleLogger) Warn(v ...interface{}) {
-	if s.level <= core.LOG_WARNING {
-		s.entry.Warn(v...)
+	if s.level <= core.LOG_WARNING && len(v) > 0 {
+		switch e := v[0].(type) {
+		case string:
+			s.logger.Warn(e)
+		case error:
+			s.logger.Warn(e.Error())
+		}
 	}
-	return
 }
 
 // Warnf implement core.ILogger
 func (s *SimpleLogger) Warnf(format string, v ...interface{}) {
 	if s.level <= core.LOG_WARNING {
-		s.entry.Warnf(format, v...)
+		if len(v) > 0 {
+			s.logger.Warn(fmt.Sprintf(format, v...))
+			return
+		}
+		s.logger.Warn(format)
 	}
-	return
 }
 
 // Level implement core.ILogger
@@ -90,7 +120,6 @@ func (s *SimpleLogger) Level() core.LogLevel {
 // SetLevel implement core.ILogger
 func (s *SimpleLogger) SetLevel(l core.LogLevel) {
 	s.level = l
-	return
 }
 
 // ShowSQL implement core.ILogger

@@ -1,0 +1,32 @@
+http_server:
+  name: webserver
+  bind_addr:
+  port: 8080
+  read_timeout: 10 # 单位：s
+  write_timeout: 15
+  idle_timeout: 20
+  max_conns_per_host: 300 # 最大连接数
+  max_idle_conns: 200
+  max_idle_conns_per_host: 200
+
+jwt:
+  - issure: webserver
+    subject: auth
+    expire: 30 # 过期时间，单位：分钟
+    sign_key: webserver_key
+    signing_method: HS256
+
+fix:
+  time_zone:
+    name: UTC
+    offset: 8 # 时区
+  
+log:
+  work_dir: logs
+  write_file: true
+  filename: webserver_%Y%m%d%H.log
+  linkname: webserver
+  log_level: 0
+  time_format: 2006-01-02 15:04:05
+  max_age: 60 # 保存天数，单位：天
+  rotation_time: 1 # 分割时间，单位：小时
