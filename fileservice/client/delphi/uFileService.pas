@@ -14,9 +14,10 @@ type
   TFileService = class(TNetHTTPClient)
   private
     const
-      CONNECTION_TIMEOUT = 30;
-      RESPONSE_TIMEOUT = 30;
+      CONNECTION_TIMEOUT = 120 * 1000;
+      RESPONSE_TIMEOUT = 120 * 1000;
       RANGE_BYTES = 'bytes=%d-%d';
+      URL_LOGIN = '%s?username=%s&password=%s';
       URL_INFO_HEAD = '%s/info?filename=%s';
       URL_INFO = '%s/info?filename=%s';
       URL_INFO_MD5 = '%s/info?filename=%s&md5=true';
@@ -28,22 +29,28 @@ type
       FDownloadChunkSize: Int64;
       FResponse: IHTTPResponse;
       FHost: string;
+      FUsername: string;
+      FPassword: string;
+      FToken: string;
       FWorkDir: string;
       FFileName: string;
       FError: string;
-    procedure SetWorkDir(const dir: string);
-    function GetUrlUpload(): string;
-    function GetUrlDownload(): string;
+    procedure SetToken(const AToken: string);
+    procedure SetWorkDir(const ADir: string);
+    function GetUrlUpload: string;
+    function GetUrlDownload: string;
 			// »ñÈ¡×´Ì¬
     function GetStatusCode: Integer;
+    function CheckConfig: Boolean;
   public
     constructor Create(AOwner: TComponent); overload;
-    constructor Create(const cHost: string); overload;
-    constructor Create(const cHost, cFileName: string); overload;
+    constructor Create(AOwner: TComponent; const AHost: string); overload;
+    constructor Create(AOwner: TComponent; const AHost, AFileName: string); overload;
     destructor Destroy; override;
     property UploadChunkSize: Int64 read FUploadChunkSize write FUploadChunkSize;
     property DownloadChunkSize: Int64 read FDownloadChunkSize write FDownloadChunkSize;
     property Host: string read FHost write FHost;
+    property Token: string read FToken write SetToken;
     property WorkDir: string read FWorkDir write SetWorkDir;
     property FileName: string read FFileName write FFileName;
     property UrlUpload: string read GetUrlUpload;
@@ -51,41 +58,55 @@ type
     property Response: IHTTPResponse read FResponse;
     property StatusCode: Integer read GetStatusCode;
     property Error: string read FError;
+    function Login(const AUsername, APassword: string): Boolean;
 		// for get file size and mod time
-    function InfoHead(const FileName: string; var Size: Int64): Boolean;
-    function Info(const FileName: string; fileInfoStream: TMemoryStream; Md5: Boolean = False): Boolean;
-    function DownloadFile(const FileName: string): Boolean;
-    function UploadFile(const FileName: string): Boolean;
-    function DeleteFile(const FileName: string): Boolean;
-    function DownloadChunk(FileStream: TFileStream; const url: string; const Offset, Size: Int64): Boolean;
-    function UploadChunk(FileStream: TFileStream; const url: string; const Offset, Size: Int64): Boolean;
+    function InfoHead(const AFileName: string; var ASize: Int64): Boolean; overload;
+    function InfoHead(var ASize: Int64): Boolean; overload;
+    function Info(const AFileName: string; var AFileInfoStream: TMemoryStream; const ACheckMd5: Boolean = False): Boolean; overload;
+    function Info(var AFileInfoStream: TMemoryStream; const ACheckMd5: Boolean = False): Boolean; overload;
+    function DownloadFile(const AFileName: string): Boolean;
+    function UploadFile(const AFileName: string): Boolean;
+    function DeleteFile: Boolean; overload;
+    function DeleteFile(const AFileName: string): Boolean; overload;
+    function DownloadChunk(AFileStream: TFileStream; const AUrl: string; const AOffset, ASize: Int64): Boolean;
+    function UploadChunk(AFileStream: TFileStream; const AUrl: string; const AOffset, ASize: Int64): Boolean;
   end;
 
 implementation
 
 { TFileService }
 
-constructor TFileService.Create(const cHost, cFileName: string);
+function TFileService.CheckConfig: Boolean;
 begin
-  Create(nil);
-
-  FHost := cHost;
-  FFileName := cFileName;
+  if (Length(FHost) = 0) or (Length(FFileName) = 0) then
+  begin
+    FError := 'config invalid';
+    Exit(False);
+  end;
+  Result := True;
 end;
 
-constructor TFileService.Create(const cHost: string);
+constructor TFileService.Create(AOwner: TComponent; const AHost, AFileName: string);
 begin
-  Create(nil);
+  Create(AOwner);
 
-  FHost := cHost;
+  FHost := AHost;
+  FFileName := AFileName;
+end;
+
+constructor TFileService.Create(AOwner: TComponent; const AHost: string);
+begin
+  Create(AOwner);
+
+  FHost := AHost;
 end;
 
 constructor TFileService.Create(AOwner: TComponent);
 begin
-  inherited Create(nil);
+  inherited Create(AOwner);
 
-  FUploadChunkSize := 4 * 1024 * 1024;
-  FDownloadChunkSize := 4 * 1024 * 1024;
+  FUploadChunkSize := 1024 * 1024;   // 1MB
+  FDownloadChunkSize := 4 * 1024 * 1024; // 4MB
 
   HandleRedirects := True;
   UserAgent := 'client 1.0';
@@ -94,29 +115,33 @@ begin
   CustomHeaders['Keep-Alive'] := '60';
 end;
 
-function TFileService.DeleteFile(const fileName: string): Boolean;
+function TFileService.DeleteFile(const AFileName: string): Boolean;
 var
   RespStream: TMemoryStream;
   SStream: TStringStream;
   url: string;
 begin
   Result := False;
-  url := Format(URL_DELETE, [FHost, fileName]);
+
+  FFileName := AFileName;
+  if not CheckConfig then
+    Exit;
+
+  url := Format(URL_DELETE, [FHost, AFileName]);
+  SStream := TStringStream.Create;
   RespStream := TMemoryStream.Create;
   try
     try
-      FResponse := Self.Post(url, nil, RespStream, nil);
+      FResponse := Self.Post(url, SStream, RespStream, nil);
       if FResponse.StatusCode = 200 then
         Exit(True)
+      else if FResponse.StatusCode = 401 then
+        FError := 'need login'
       else if Assigned(RespStream) then
       begin
-        SStream := TStringStream.Create;
-        try
-          SStream.LoadFromStream(RespStream);
-          FError := SStream.DataString;
-        finally
-          SStream.Free;
-        end;
+        SStream.Clear;
+        SStream.LoadFromStream(RespStream);
+        FError := SStream.DataString;
       end;
       FError := 'file not found';
     except
@@ -126,7 +151,14 @@ begin
   finally
     if Assigned(RespStream) then
       FreeAndNil(RespStream);
+    if Assigned(SStream) then
+      FreeAndNil(SStream);
   end;
+end;
+
+function TFileService.DeleteFile: Boolean;
+begin
+  Result := DeleteFile(FFileName);
 end;
 
 destructor TFileService.Destroy;
@@ -134,7 +166,7 @@ begin
   inherited;
 end;
 
-function TFileService.DownloadChunk(fileStream: TFileStream; const url: string; const offset, size: Int64): Boolean;
+function TFileService.DownloadChunk(AFileStream: TFileStream; const AUrl: string; const AOffset, ASize: Int64): Boolean;
 var
   AHeaders: TNetHeaders;
   RespStream: TMemoryStream;
@@ -143,19 +175,21 @@ begin
   Result := False;
 
   SetLength(AHeaders, Length(AHeaders) + 1);
-  AHeaders[High(AHeaders)] := TNameValuePair.Create('Range', Format(RANGE_BYTES, [offset, size]));
+  AHeaders[High(AHeaders)] := TNameValuePair.Create('Range', Format(RANGE_BYTES, [AOffset, ASize]));
 
   RespStream := TMemoryStream.Create;
   try
     try
-      fileStream.Position := offset;
+      AFileStream.Position := AOffset;
 
-      FResponse := Self.Get(url, RespStream, AHeaders);
+      FResponse := Self.Get(AUrl, RespStream, AHeaders);
       if (FResponse.StatusCode = 200) or (FResponse.StatusCode = 206) then
       begin
-        fileStream.CopyFrom(RespStream, 0);
+        AFileStream.CopyFrom(RespStream, 0);
         Exit(True);
       end
+      else if FResponse.StatusCode = 401 then
+        FError := 'need login'
       else if Assigned(RespStream) then
       begin
         SStream := TStringStream.Create;
@@ -177,7 +211,7 @@ begin
   end;
 end;
 
-function TFileService.DownloadFile(const fileName: string): Boolean;
+function TFileService.DownloadFile(const AFileName: string): Boolean;
 var
   FStream: TFileStream;
   totalSize, size: Int64;
@@ -185,13 +219,17 @@ var
 begin
   Result := False;
 
+  FFileName := AFileName;
+  if not CheckConfig then
+    Exit;
+
   totalSize := 0;
   size := 0;
 
-  if InfoHead(fileName, totalSize) then
+  if InfoHead(AFileName, totalSize) then
   begin
-    url := Format(URL_DOWNLOAD, [FHost, fileName]);
-    lFileName := TPath.Combine(FWorkDir, fileName);
+    url := Format(URL_DOWNLOAD, [FHost, AFileName]);
+    lFileName := TPath.Combine(FWorkDir, AFileName);
     try
       try
         if FileExists(lFileName) then
@@ -248,42 +286,28 @@ begin
   Result := Format(URL_UPLOAD, [FHost, FFileName])
 end;
 
-function TFileService.Info(const fileName: string; fileInfoStream: TMemoryStream; md5: Boolean = False): Boolean;
+function TFileService.Info(const AFileName: string; var AFileInfoStream: TMemoryStream; const ACheckMd5: Boolean = False): Boolean;
 var
   url: string;
 begin
   Result := False;
 
-  if md5 then
+  FFileName := AFileName;
+  if not CheckConfig then
+    Exit;
+
+  if ACheckMd5 then
     url := URL_INFO_MD5
   else
     url := URL_INFO;
 
-  url := Format(url, [FHost, fileName]);
+  url := Format(url, [FHost, AFileName]);
   try
-    FResponse := Self.Get(url, fileInfoStream, nil);
+    FResponse := Self.Get(url, AFileInfoStream, nil);
     if FResponse.StatusCode = 200 then
-      Exit(True);
-  except
-    on E: Exception do
-      FError := E.Message;
-  end;
-end;
-
-function TFileService.InfoHead(const fileName: string; var Size: Int64): Boolean;
-var
-  url: string;
-begin
-  Result := False;
-
-  url := Format(URL_INFO_HEAD, [FHost, fileName]);
-  try
-    FResponse := Self.Head(url, nil);
-    if FResponse.StatusCode = 200 then
-    begin
-      Size := FResponse.ContentLength;
-      Exit(True);
-    end
+      Exit(True)
+    else if FResponse.StatusCode = 401 then
+      FError := 'need login'
     else
       FError := 'server file not found';
   except
@@ -292,14 +316,86 @@ begin
   end;
 end;
 
-procedure TFileService.SetWorkDir(const dir: string);
+function TFileService.Info(var AFileInfoStream: TMemoryStream; const ACheckMd5: Boolean): Boolean;
 begin
-  if not DirectoryExists(dir) then
-    MkDir(dir);
-  FWorkDir := dir;
+  Result := Info(FFileName, AFileInfoStream, ACheckMd5);
 end;
 
-function TFileService.UploadChunk(fileStream: TFileStream; const url: string; const offset, size: Int64): Boolean;
+function TFileService.InfoHead(var ASize: Int64): Boolean;
+begin
+  Result := InfoHead(FFileName, ASize);
+end;
+
+function TFileService.Login(const AUsername, APassword: string): Boolean;
+var
+  url: string;
+  RespStream: TStringStream;
+begin
+  Result := False;
+
+  url := Format(URL_LOGIN, [FHost, AUsername, APassword]);
+  RespStream := TStringStream.Create;
+  try
+    FResponse := Self.Get(url, RespStream, nil);
+    if FResponse.StatusCode = 200 then
+    begin
+      SetToken(RespStream.DataString);
+      FUsername := AUsername;
+      FPassword := APassword;
+      Result := True;
+    end
+    else if FResponse.StatusCode = 401 then
+      FError := 'need login'
+    else
+      FError := RespStream.DataString;
+  finally
+    if Assigned(RespStream) then
+      FreeAndNil(RespStream);
+  end;
+end;
+
+function TFileService.InfoHead(const AFileName: string; var ASize: Int64): Boolean;
+var
+  url: string;
+begin
+  Result := False;
+
+  FFileName := AFileName;
+  if not CheckConfig then
+    Exit;
+
+  url := Format(URL_INFO_HEAD, [FHost, AFileName]);
+  try
+    FResponse := Self.Head(url, nil);
+    if FResponse.StatusCode = 200 then
+    begin
+      ASize := FResponse.ContentLength;
+      Exit(True);
+    end
+    else if FResponse.StatusCode = 401 then
+      FError := 'need login'
+    else
+      FError := 'server file not found';
+  except
+    on E: Exception do
+      FError := E.Message;
+  end;
+end;
+
+procedure TFileService.SetToken(const AToken: string);
+begin
+  FToken := AToken;
+  Self.CustomHeaders['Authorization'] := 'Bearer ' + AToken;
+end;
+
+procedure TFileService.SetWorkDir(const ADir: string);
+begin
+  if not DirectoryExists(ADir) then
+    MkDir(ADir);
+  FWorkDir := ADir;
+end;
+
+function TFileService.UploadChunk(AFileStream: TFileStream; const AUrl: string; const AOffset, ASize: Int64): Boolean;
 var
   AHeaders: TNetHeaders;
   SStream: TStringStream;
@@ -308,22 +404,24 @@ begin
   Result := False;
 
   SetLength(AHeaders, Length(AHeaders) + 1);
-  AHeaders[High(AHeaders)] := TNameValuePair.Create('Range', Format(RANGE_BYTES, [offset, size]));
+  AHeaders[High(AHeaders)] := TNameValuePair.Create('Range', Format(RANGE_BYTES, [AOffset, ASize]));
 
   MStream := TMemoryStream.Create;
   RespStream := TMemoryStream.Create;
   try
     try
-      fileStream.Position := offset;
+      AFileStream.Position := AOffset;
 
-      MStream.CopyFrom(fileStream, size - offset + 1);
+      MStream.CopyFrom(AFileStream, ASize - AOffset + 1);
       MStream.Position := 0;
 
-      FResponse := Self.Post(url, MStream, RespStream, AHeaders);
+      FResponse := Self.Post(AUrl, MStream, RespStream, AHeaders);
       if (FResponse.StatusCode = 200) or (FResponse.StatusCode = 206) then
       begin
         Exit(True);
       end
+      else if FResponse.StatusCode = 401 then
+        FError := 'need login'
       else
       begin
         SStream := TStringStream.Create;
@@ -347,14 +445,19 @@ begin
   end;
 end;
 
-function TFileService.UploadFile(const fileName: string): Boolean;
+function TFileService.UploadFile(const AFileName: string): Boolean;
 var
   fStream: TFileStream;
   sSize, size: Int64;
   url: string;
 begin
   Result := False;
-  if not FileExists(fileName) then
+
+  FFileName := AFileName;
+  if not CheckConfig then
+    Exit;
+
+  if not FileExists(AFileName) then
   begin
     FError := 'file not found';
     Exit;
@@ -363,12 +466,12 @@ begin
   sSize := 0;
   size := 0;
 
-  if InfoHead(fileName, sSize) or (StatusCode = 404) then
+  if InfoHead(AFileName, sSize) or (StatusCode = 404) then
   begin
-    url := Format(URL_UPLOAD, [FHost, fileName]);
+    url := Format(URL_UPLOAD, [FHost, AFileName]);
     try
       try
-        fStream := TFileStream.Create(fileName, fmOpenRead or fmShareExclusive);
+        fStream := TFileStream.Create(AFileName, fmOpenRead or fmShareExclusive);
 
         if (sSize - fStream.Size) = 0 then
           Exit(True);
@@ -389,7 +492,7 @@ begin
           if not UploadChunk(fStream, url, sSize, sSize + size - 1) then
             Exit;
 
-          sSize := sSize + size;
+          Inc(sSize, size);
         end;
 
         if (sSize - fStream.Size) = 0 then
