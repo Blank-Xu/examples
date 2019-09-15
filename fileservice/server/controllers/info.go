@@ -15,14 +15,14 @@ func Info() http.HandlerFunc {
 		Name            string `json:"name"`
 		Size            int64  `json:"size"`
 		ModTime         int64  `json:"mod_time"`
-		Md5             string `json:"md5"`
+		Md5             string `json:"md5,omitempty"`
 		UploadMaxSize   int64  `json:"upload_max_size"`
 		UploadChunkSize int64  `json:"upload_chunk_size"`
 	}
 
 	var (
-		cfg      = config.Default.FileConfig
-		md5Limit = make(chan struct{}, cfg.FileMd5Limit)
+		cfg     = config.Default.FileConfig
+		limiter = utils.NewLimiter(cfg.FileMd5Limit)
 	)
 	return func(w http.ResponseWriter, r *http.Request) {
 		var filename = r.FormValue("filename")
@@ -52,15 +52,16 @@ func Info() http.HandlerFunc {
 
 			var md5 string
 			if check := r.FormValue("md5"); check == "true" {
-				md5Limit <- struct{}{}
-				defer func() {
-					<-md5Limit
-				}()
+				if !limiter.Get() {
+					http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+					return
+				}
+				defer limiter.Put()
 
 				mfile, _ := os.OpenFile(lfilename, os.O_RDONLY, 0666)
 				if mfile == nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					ctx.Log.Error(err)
+					http.Error(w, "open file is nil", http.StatusInternalServerError)
+					ctx.Log.Error("open file is nil")
 					return
 				}
 				defer mfile.Close()

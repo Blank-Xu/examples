@@ -5,14 +5,14 @@ import (
 	"path/filepath"
 
 	"fileservice/server/config"
+	"fileservice/server/utils"
 )
 
 func Download() http.HandlerFunc {
 	var (
-		cfg           = config.Default.FileConfig
-		downloadLimit = make(chan struct{}, cfg.DownloadLimit)
+		cfg     = config.Default.FileConfig
+		limiter = utils.NewLimiter(cfg.DownloadLimit)
 	)
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "", http.StatusMethodNotAllowed)
@@ -30,10 +30,11 @@ func Download() http.HandlerFunc {
 
 		// TODO: 检查 ctx.User 是否有下载权限
 
-		downloadLimit <- struct{}{}
-		defer func() {
-			<-downloadLimit
-		}()
+		if !limiter.Get() {
+			http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+			return
+		}
+		defer limiter.Put()
 
 		http.ServeFile(w, r, filepath.Join(cfg.WorkDir, filename))
 	}

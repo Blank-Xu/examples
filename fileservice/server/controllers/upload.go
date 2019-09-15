@@ -9,12 +9,13 @@ import (
 	"strconv"
 
 	"fileservice/server/config"
+	"fileservice/server/utils"
 )
 
 func Upload() http.HandlerFunc {
 	var (
-		cfg         = config.Default.FileConfig
-		uploadLimit = make(chan struct{}, cfg.DownloadLimit)
+		cfg     = config.Default.FileConfig
+		limiter = utils.NewLimiter(cfg.UploadLimit)
 	)
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
@@ -30,12 +31,9 @@ func Upload() http.HandlerFunc {
 
 			// TODO: 检查 ctx.User 是否有上传权限
 
-			filename = filepath.Join(cfg.WorkDir, filename)
 			var (
-				start int64
-				end   int64
-
-				err error
+				start, end int64
+				err        error
 			)
 			if _, err = fmt.Sscanf(r.Header.Get("Range"), "bytes=%d-%d", &start, &end); err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
@@ -49,7 +47,6 @@ func Upload() http.HandlerFunc {
 			}
 
 			var contentLength, _ = strconv.ParseInt(r.Header.Get("Content-Length"), 10, 64)
-
 			ctx.Log.Infof("upload length: %d, start: %d, end: %d", contentLength, start, end)
 
 			if contentLength != (end-start+1) || contentLength > cfg.UploadChunkSize {
@@ -58,8 +55,8 @@ func Upload() http.HandlerFunc {
 				return
 			}
 
-			var file *os.File
-			file, err = os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+			filename = filepath.Join(cfg.WorkDir, filename)
+			file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				ctx.Log.Errorf("upload failed, open filename[%s] err: %v", filename, err)
@@ -79,10 +76,11 @@ func Upload() http.HandlerFunc {
 				return
 			}
 
-			uploadLimit <- struct{}{}
-			defer func() {
-				<-uploadLimit
-			}()
+			if !limiter.Get() {
+				http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+				return
+			}
+			defer limiter.Put()
 
 			if _, err = file.Seek(start, 2); err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)

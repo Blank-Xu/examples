@@ -1,10 +1,11 @@
 package config
 
 import (
-	"fileservice/server/utils"
 	"log"
 	"path/filepath"
 	"time"
+
+	"fileservice/server/utils"
 
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"

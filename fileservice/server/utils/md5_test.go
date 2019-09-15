@@ -66,6 +66,20 @@ func BenchmarkMd5File(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		b.Log(Md5File(file1))
+		md5, err := Md5File(file1)
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.Log(md5)
+	}
+}
+
+func BenchmarkMd5Filename(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		md5, err := Md5Filename(filename1)
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.Log(md5)
 	}
 }
