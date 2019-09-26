@@ -55,7 +55,7 @@ func main() {
 				log.Println(err)
 			} else {
 				_lock.Lock()
-				successCount += 1
+				successCount++
 				_lock.Unlock()
 			}
 

@@ -15,7 +15,7 @@ file_config:
   upload_max_size: 200 # 单位：MB
   upload_chunk_size: 4 # 单位：MB
   download_limit: 50 # 并发下载人数限制
-  file_md5_limit: 50 # 并发获取md5人数，防止内存占满
+  file_md5_limit: 50 # 并发获取md5人数，防止cpu占满
 
 jwt:
   issure: fileserver

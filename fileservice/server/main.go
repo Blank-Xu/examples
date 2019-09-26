@@ -22,7 +22,7 @@ func main() {
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("server pid[%d] crashed with error, err: %v", pid, err)
+			log.Printf("server pid[%d] crashed with error: %v", pid, err)
 			// 等待日志记录完成
 			time.Sleep(time.Second)
 			panic(err)
@@ -44,7 +44,7 @@ func main() {
 
 	go func() {
 		log.Printf("server pid[%d] start, version: [%s], addr: [%s]", pid, config.VERSION, server.Addr)
-		if err := server.ListenAndServe(); err != nil {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("server pid[%d] exit with err: %v", pid, err)
 		}
 	}()
@@ -52,17 +52,14 @@ func main() {
 	var quitSignal = make(chan os.Signal)
 	signal.Notify(quitSignal, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
-	var signalMsg = <-quitSignal
-	log.Printf("server pid[%d] received shutdown signal: [%v]", pid, signalMsg)
+	log.Printf("server pid[%d] receive shutdown signal: [%v]", pid, <-quitSignal)
 
-	var ctx, cancel = context.WithTimeout(context.Background(), time.Second*3)
+	var ctx, cancel = context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
 		log.Printf("server pid[%d] shutdown failed, err: %v", pid, err)
 	}
-
-	<-ctx.Done()
 
 	log.Printf("server pid[%d] stoped", pid)
 }
