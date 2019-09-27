@@ -11,7 +11,7 @@ func NewLimiter(count int) *Limiter {
 }
 
 func (p *Limiter) Get() bool {
-	if len(p.ch) == p.count {
+	if len(p.ch) >= p.count {
 		return false
 	}
 	p.ch <- struct{}{}
