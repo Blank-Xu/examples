@@ -1,23 +1,26 @@
 package main
 
 import (
-	"fyne.io/fyne/app"
-	"fyne.io/fyne/widget"
-	"github.com/andlabs/ui"
+	"fmt"
+	
+	"github.com/ying32/govcl/vcl"
 )
 
 func main() {
-	ui1 := ui.NewWindow("")
+	var i = 100_00_0_00
+	i++
+	fmt.Print(i)
 	
-	app := app.New()
-	
-	w := app.NewWindow("hello")
-	w.SetContent(
-		widget.NewVBox(
-			widget.NewLabel("hello fyne"),
-			widget.NewButton("quit", func() {
-				app.Quit()
-			}),
-			))
-	w.ShowAndRun()
+	vcl.Application.Initialize()
+	mainForm := vcl.Application.CreateForm()
+	mainForm.SetCaption("Hello")
+	mainForm.EnabledMaximize(false)
+	mainForm.ScreenCenter()
+	btn := vcl.NewButton(mainForm)
+	btn.SetParent(mainForm)
+	btn.SetCaption("Hello")
+	btn.SetOnClick(func(sender vcl.IObject) {
+		vcl.ShowMessage("Hello!")
+	})
+	vcl.Application.Run()
 }
