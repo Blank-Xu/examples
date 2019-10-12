@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	
+
 	"github.com/iawia002/annie/request"
 )
 

@@ -5,6 +5,6 @@ import (
 	"path/filepath"
 )
 
-func GetPath()(string,error)  {
+func GetPath() (string, error) {
 	return filepath.Abs(filepath.Dir(os.Args[0]))
 }

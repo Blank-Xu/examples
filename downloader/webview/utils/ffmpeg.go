@@ -15,7 +15,7 @@ func runMergeCmd(cmd *exec.Cmd, paths []string, mergeFilePath string) error {
 		return fmt.Errorf("%s\n%s", err, stderr.String())
 	}
 
-	if len(mergeFilePath)>0 {
+	if len(mergeFilePath) > 0 {
 		os.Remove(mergeFilePath)
 	}
 	// remove parts

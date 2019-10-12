@@ -11,6 +11,8 @@ require (
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lestrrat-go/file-rotatelogs v2.2.0+incompatible
 	github.com/lestrrat-go/strftime v0.0.0-20190725011945-5c849dd2c51d // indirect
+	github.com/lxn/win v0.0.0-20190919090605-24c5960b03d8 // indirect
+	github.com/sciter-sdk/go-sciter v0.5.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/tebeka/strftime v0.1.3 // indirect
