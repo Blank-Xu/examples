@@ -5,7 +5,7 @@ type Auth struct {
 	Pass string
 }
 
-func middlewareAuth(auths []*Auth, ctx *Context) CommandFunc {
+func middlewareAuth(auths []*Auth, ctx *Context) HandlerFunc {
 
 	return func(ctx *Context) {
 

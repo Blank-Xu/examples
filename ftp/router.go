@@ -1,9 +1,9 @@
 package ftp
 
-type CommandFunc func(*Context)
+type HandlerFunc func(*Context)
 
-var RouterMap = map[string]CommandFunc{
-	"ALLO": nil,
+var RouterMap = map[string]HandlerFunc{
+	"ALLO": commandALLO,
 	"CDUP": nil,
 	"CWD":  nil,
 	"DELE": nil,
@@ -38,3 +38,12 @@ var RouterMap = map[string]CommandFunc{
 	"XRMD": nil,
 }
 
+var (
+	funcAuthenticate = func(handler HandlerFunc) HandlerFunc {
+
+	}
+)
+
+func init() {
+
+}

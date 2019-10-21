@@ -1,9 +1,5 @@
 package ftp
 
-import (
-	"bytes"
-)
-
 // commandALLO responds 'ALLO' command
 func commandALLO(ctx *Context) {
 	ctx.WriteMessage(202, "Obsolete")
@@ -32,15 +28,13 @@ func commandPASS(ctx *Context) {
 		return
 	}
 
-	// sort.SearchStrings()
-
 	ctx.WriteMessage(530, "Incorrect password, not logged in")
 	commandQUIT(ctx)
 }
 
 func commandOPTS(ctx *Context) {
-	if bytes.EqualFold(ctx.data, []byte("UTF8")) ||
-		bytes.EqualFold(ctx.data, []byte("UTF8 ON")) {
+	var data = string(ctx.data)
+	if data == "UTF8" || data == "UTF8 ON" {
 		ctx.WriteMessage(200, "OK")
 		return
 	}
