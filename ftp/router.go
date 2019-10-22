@@ -5,7 +5,7 @@ type HandlerFunc func(*Context)
 var (
 	routerMap = map[string]HandlerFunc{
 		"ALLO": commandALLO,
-		"CDUP": checkAuth(commandCDUP),
+		"CDUP": checkUser(commandCDUP),
 		"CWD":  nil,
 		"DELE": nil,
 		"EPRT": nil,
@@ -39,7 +39,7 @@ var (
 		"XRMD": nil,
 	}
 
-	checkAuth = func(handler HandlerFunc) HandlerFunc {
+	checkUser = func(handler HandlerFunc) HandlerFunc {
 		return func(ctx *Context) {
 			if len(ctx.user) == 0 {
 				ctx.WriteMessage(530, "not logged in")
@@ -51,6 +51,21 @@ var (
 
 	checkParam = func(handler HandlerFunc) HandlerFunc {
 		return func(ctx *Context) {
+			if len(ctx.param) == 0 {
+				ctx.WriteMessage(553, "action aborted, required param missing")
+				return
+			}
+			handler(ctx)
+		}
+	}
+
+	checkUserAndParam = func(handler HandlerFunc) HandlerFunc {
+		return func(ctx *Context) {
+			if len(ctx.user) == 0 {
+				ctx.WriteMessage(530, "not logged in")
+				return
+			}
+
 			if len(ctx.param) == 0 {
 				ctx.WriteMessage(553, "action aborted, required param missing")
 				return
