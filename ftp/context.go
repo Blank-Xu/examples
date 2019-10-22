@@ -9,44 +9,47 @@ import (
 
 type Context struct {
 	conn          net.Conn      // TCP connection
+	addr          string        //
 	writer        *bufio.Writer // Writer on the TCP connection
 	reader        *bufio.Reader // Reader on the TCP connection
 	user          []byte        // Authenticated user
 	path          []byte        // Current path
-	command       []byte        // Command received on the connection
-	data          []byte        // Param of the FTP command
+	data          []byte        // request data
+	command       string        // Command received on the connection
+	param         []byte        // Param of the FTP command
 	connectedTime int64         // Date of connection
-	timeoutSecond int64
-	ctxRnfr       []byte  // Rename from
-	ctxRest       []byte  // Restart point
-	transferTLS   bool    // Use TLS for transfer connection
-	log           *Logger // Client handler logging
+	timeoutSecond int64         //
+	ctxRnfr       []byte        // Rename from
+	ctxRest       []byte        // Restart point
+	transferTLS   bool          // Use TLS for transfer connection
+	log           *Logger       // Client handler logging
 }
 
-func NewContext(conn net.Conn) (*Context, error) {
+func NewContext(conn net.Conn) *Context {
 	p := &Context{
 		conn:          conn,
+		addr:          conn.RemoteAddr().String(),
 		writer:        bufio.NewWriter(conn),
 		reader:        bufio.NewReader(conn),
 		user:          nil,
 		path:          nil,
-		command:       nil,
-		data:          nil,
+		param:         nil,
 		connectedTime: 0,
 		ctxRnfr:       nil,
 		ctxRest:       nil,
 		transferTLS:   false,
 		log:           &Logger{},
 	}
-	return p, nil
+	return p
 }
 
-func (p *Context) Read() ([]byte, error) {
+func (p *Context) Read() error {
 	if p.reader == nil {
-		return nil, errors.New("reader is nil")
+		return errors.New("reader is nil")
 	}
 
-	data, err := p.reader.ReadBytes('\n')
+	var err error
+	p.data, err = p.reader.ReadBytes('\n')
 	if err != nil {
 
 		switch err.(type) {
@@ -56,11 +59,25 @@ func (p *Context) Read() ([]byte, error) {
 
 		}
 
-		return nil, err
+		return err
 	}
-	p.data = data
+	return nil
+}
 
-	return data, nil
+func (p *Context) ParseParam() bool {
+	p.data = bytes.Trim(p.data, "\r\n")
+	params := bytes.SplitN(p.data, []byte(" "), 2)
+	var l = len(params)
+	switch l {
+	case 0:
+		return false
+	case 1:
+		p.command = string(params[0])
+	case 2:
+		p.command = string(params[0])
+		p.param = params[1]
+	}
+	return true
 }
 
 func (p *Context) Authenticate(pass []byte) bool {
@@ -92,6 +109,6 @@ func (p *Context) WriteMessage(code int32, msg string) (err error) {
 	return
 }
 
-func (p *Context) Close() error {
-	return p.conn.Close()
-}
+// func (p *Context) Close() error {
+// 	return p.conn.Close()
+// }

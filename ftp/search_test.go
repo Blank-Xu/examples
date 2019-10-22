@@ -110,6 +110,15 @@ func stringToInt(s string) int {
 	return i
 }
 
+func TestSlice(t *testing.T) {
+	var s []int
+	if len(s) == 0 {
+		t.Log("0")
+	} else {
+		t.Log("1")
+	}
+}
+
 func BenchmarkStringToInt(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var sl = make([]int, 0, l)

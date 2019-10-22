@@ -17,13 +17,13 @@ func commandCWD(ctx *Context) {
 
 // commandUSER responds 'USER' command
 func commandUSER(ctx *Context) {
-	ctx.user = ctx.data
+	ctx.user = ctx.param
 	ctx.WriteMessage(331, "OK")
 }
 
 // commandPASS responds 'PASS' command
 func commandPASS(ctx *Context) {
-	if ok := ctx.Authenticate(ctx.data); ok {
+	if ok := ctx.Authenticate(ctx.param); ok {
 		ctx.WriteMessage(230, "Password ok, continue")
 		return
 	}
@@ -33,7 +33,7 @@ func commandPASS(ctx *Context) {
 }
 
 func commandOPTS(ctx *Context) {
-	var data = string(ctx.data)
+	var data = string(ctx.param)
 	if data == "UTF8" || data == "UTF8 ON" {
 		ctx.WriteMessage(200, "OK")
 		return
