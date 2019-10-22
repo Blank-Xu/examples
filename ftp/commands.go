@@ -1,5 +1,10 @@
 package ftp
 
+import (
+	"bytes"
+	"strings"
+)
+
 // commandALLO responds 'ALLO' command
 func commandALLO(ctx *Context) {
 	ctx.WriteMessage(202, "Obsolete")
@@ -12,6 +17,41 @@ func commandCDUP(ctx *Context) {
 
 // commandCWD responds 'CWD' command
 func commandCWD(ctx *Context) {
+	ctx.path = ctx.param
+}
+
+// commandDELE responds 'DELE' command
+func commandDELE(ctx *Context) {
+
+}
+
+// commandEPRT responds 'EPRT' command
+func commandEPRT(ctx *Context) {
+
+}
+
+// commandEPSV responds 'EPSV' command
+func commandEPSV(ctx *Context) {
+
+}
+
+const _msgFEAT = "211-Features supported:\r\n" +
+	" EPRT\r\n" +
+	" EPSV\r\n" +
+	" MDTM\r\n" +
+	" SIZE\r\n" +
+	" UTF8\r\n" +
+	"211 End FEAT.\r\n"
+
+// commandFEAT responds 'FEAT' command
+func commandFEAT(ctx *Context) {
+	var buf = bytes.NewBufferString(_msgFEAT)
+	buf.WriteTo(ctx.writer)
+}
+
+// commandLIST responds 'LIST' command
+func commandLIST(ctx *Context) {
+	ctx.WriteMessage(150, "Opening ASCII mode data connection for file list")
 
 }
 

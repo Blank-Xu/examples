@@ -1,17 +1,19 @@
 package ftp
 
-type HandlerFunc func(*Context)
+import (
+	"strings"
+)
 
 var (
 	routerMap = map[string]HandlerFunc{
 		"ALLO": commandALLO,
 		"CDUP": checkUser(commandCDUP),
-		"CWD":  nil,
-		"DELE": nil,
-		"EPRT": nil,
-		"EPSV": nil,
-		"FEAT": nil,
-		"LIST": nil,
+		"CWD":  checkUserAndParam(commandCWD),
+		"DELE": checkUserAndParam(commandDELE),
+		"EPRT": checkUserAndParam(commandEPRT),
+		"EPSV": checkUser(commandEPSV),
+		"FEAT": commandFEAT,
+		"LIST": checkUser(commandLIST),
 		"NLST": nil,
 		"MDTM": nil,
 		"MKD":  nil,
@@ -70,7 +72,18 @@ var (
 				ctx.WriteMessage(553, "action aborted, required param missing")
 				return
 			}
+
 			handler(ctx)
 		}
 	}
 )
+
+func init() {
+	var m = make(map[string]HandlerFunc, len(routerMap))
+	for command, fn := range routerMap {
+		cmd := strings.ToLower(command)
+		m[command] = fn
+		m[cmd] = fn
+	}
+	routerMap = m
+}

@@ -8,8 +8,10 @@ import (
 )
 
 type Context struct {
-	conn          net.Conn      // TCP connection
-	addr          string        //
+	server *Server
+
+	conn          *net.TCPConn
+	clientAddr    string
 	writer        *bufio.Writer // Writer on the TCP connection
 	reader        *bufio.Reader // Reader on the TCP connection
 	user          []byte        // Authenticated user
@@ -21,14 +23,15 @@ type Context struct {
 	timeoutSecond int64         //
 	ctxRnfr       []byte        // Rename from
 	ctxRest       []byte        // Restart point
-	transferTLS   bool          // Use TLS for transfer connection
+	errs          []error       // record errors
 	log           *Logger       // Client handler logging
 }
 
-func NewContext(conn net.Conn) *Context {
+func NewContext(server *Server, conn *net.TCPConn) *Context {
 	p := &Context{
+		server:        server,
 		conn:          conn,
-		addr:          conn.RemoteAddr().String(),
+		clientAddr:    conn.RemoteAddr().String(),
 		writer:        bufio.NewWriter(conn),
 		reader:        bufio.NewReader(conn),
 		user:          nil,
@@ -37,10 +40,17 @@ func NewContext(conn net.Conn) *Context {
 		connectedTime: 0,
 		ctxRnfr:       nil,
 		ctxRest:       nil,
-		transferTLS:   false,
-		log:           &Logger{},
+
+		log: &Logger{},
 	}
 	return p
+}
+
+func (p *Context) Error(err error) error {
+	if err != nil {
+		p.errs = append(p.errs, err)
+	}
+	return err
 }
 
 func (p *Context) Read() error {
@@ -90,13 +100,13 @@ func (p *Context) WriteLine(line []byte) (err error) {
 	buf.Write(line)
 	buf.WriteString("\r\n")
 	_, err = buf.WriteTo(p.writer)
-	return
+	return p.Error(err)
 }
 
 func (p *Context) WriteBuffer(buf *bytes.Buffer) (err error) {
 	buf.WriteString("\r\n")
 	_, err = buf.WriteTo(p.writer)
-	return
+	return p.Error(err)
 }
 
 func (p *Context) WriteMessage(code int32, msg string) (err error) {
@@ -106,9 +116,9 @@ func (p *Context) WriteMessage(code int32, msg string) (err error) {
 	buf.WriteString(msg)
 	buf.WriteString("\r\n")
 	_, err = buf.WriteTo(p.writer)
-	return
+	return p.Error(err)
 }
 
-// func (p *Context) Close() error {
-// 	return p.conn.Close()
-// }
+func (p *Context) Close() error {
+	return p.conn.Close()
+}
