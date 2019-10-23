@@ -2,7 +2,6 @@ package ftp
 
 import (
 	"bytes"
-	"strings"
 )
 
 // commandALLO responds 'ALLO' command
@@ -90,4 +89,5 @@ func commandTYPE(ctx *Context) {
 func commandQUIT(ctx *Context) {
 	ctx.WriteMessage(221, "Goodbye.")
 	ctx.Close()
+	ctx = nil
 }

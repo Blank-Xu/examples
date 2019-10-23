@@ -7,13 +7,13 @@ import (
 var (
 	routerMap = map[string]HandlerFunc{
 		"ALLO": commandALLO,
-		"CDUP": checkUser(commandCDUP),
-		"CWD":  checkUserAndParam(commandCWD),
-		"DELE": checkUserAndParam(commandDELE),
-		"EPRT": checkUserAndParam(commandEPRT),
-		"EPSV": checkUser(commandEPSV),
+		"CDUP": checkLogin(commandCDUP),
+		"CWD":  checkLoginAndParam(commandCWD),
+		"DELE": checkLoginAndParam(commandDELE),
+		"EPRT": checkLoginAndParam(commandEPRT),
+		"EPSV": checkLogin(commandEPSV),
 		"FEAT": commandFEAT,
-		"LIST": checkUser(commandLIST),
+		"LIST": checkLogin(commandLIST),
 		"NLST": nil,
 		"MDTM": nil,
 		"MKD":  nil,
@@ -41,12 +41,13 @@ var (
 		"XRMD": nil,
 	}
 
-	checkUser = func(handler HandlerFunc) HandlerFunc {
+	checkLogin = func(handler HandlerFunc) HandlerFunc {
 		return func(ctx *Context) {
-			if len(ctx.user) == 0 {
+			if len(ctx.pass) == 0 {
 				ctx.WriteMessage(530, "not logged in")
 				return
 			}
+
 			handler(ctx)
 		}
 	}
@@ -57,13 +58,14 @@ var (
 				ctx.WriteMessage(553, "action aborted, required param missing")
 				return
 			}
+
 			handler(ctx)
 		}
 	}
 
-	checkUserAndParam = func(handler HandlerFunc) HandlerFunc {
+	checkLoginAndParam = func(handler HandlerFunc) HandlerFunc {
 		return func(ctx *Context) {
-			if len(ctx.user) == 0 {
+			if len(ctx.pass) == 0 {
 				ctx.WriteMessage(530, "not logged in")
 				return
 			}

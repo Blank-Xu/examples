@@ -2,6 +2,7 @@ package ftp
 
 import (
 	"net"
+	"time"
 )
 
 var DefaultServer = NewServer(&Config{})
@@ -50,12 +51,30 @@ func (p *Server) ListenAndServe() error {
 	for {
 		conn, err := p.listener.AcceptTCP()
 		if err != nil {
-			break
+			return err
 		}
+
+		if err = conn.SetKeepAlive(true); err != nil {
+			return err
+		}
+
+		var now = time.Now().Unix()
+
+		if err = conn.SetDeadline(time.Unix(now+int64(p.config.DeadlineSeconds), 0)); err != nil {
+			return err
+		}
+		if err = conn.SetReadDeadline(time.Unix(now+int64(p.config.ReadDeadlineSeconds), 0)); err != nil {
+			return err
+		}
+		if err = conn.SetWriteDeadline(time.Unix(now+int64(p.config.WriteDeadlineSeconds), 0)); err != nil {
+			return err
+		}
+		if err = conn.SetKeepAlivePeriod(time.Duration(p.config.KeepAlivePeriodSeconds)); err != nil {
+			return err
+		}
+
 		go p.handle(conn)
 	}
-
-	return nil
 }
 
 func (p *Server) handle(conn *net.TCPConn) {
@@ -65,8 +84,8 @@ func (p *Server) handle(conn *net.TCPConn) {
 		}
 		conn.Close()
 	}()
-	ctx := NewContext(p, conn)
 
+	ctx := NewContext(p.config, conn)
 	ctx.WriteMessage(220, p.config.ServerName)
 
 	for {

@@ -8,13 +8,14 @@ import (
 )
 
 type Context struct {
-	server *Server
+	config *Config
 
 	conn          *net.TCPConn
 	clientAddr    string
 	writer        *bufio.Writer // Writer on the TCP connection
 	reader        *bufio.Reader // Reader on the TCP connection
 	user          []byte        // Authenticated user
+	pass          []byte        //
 	path          []byte        // Current path
 	data          []byte        // request data
 	command       string        // Command received on the connection
@@ -27,9 +28,9 @@ type Context struct {
 	log           *Logger       // Client handler logging
 }
 
-func NewContext(server *Server, conn *net.TCPConn) *Context {
+func NewContext(config *Config, conn *net.TCPConn) *Context {
 	p := &Context{
-		server:        server,
+		config:        config,
 		conn:          conn,
 		clientAddr:    conn.RemoteAddr().String(),
 		writer:        bufio.NewWriter(conn),
