@@ -7,7 +7,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 type Context struct {
@@ -85,7 +84,7 @@ func (p *Context) ParseParam() bool {
 }
 
 func (p *Context) Authenticate(pass string) bool {
-	account, ok := p.config.userMap[p.user]
+	account, ok := p.config.accountMap[p.user]
 	if !ok {
 		return false
 	}
@@ -131,20 +130,21 @@ func (p *Context) ChangeDir(dir string) bool {
 	return false
 }
 
-func (p *Context) GetAbsPath(path string) string {
+func (p *Context) GetAbsPath(path []byte) string {
+	var newPath string
 	if len(path) == 0 {
 		return p.path
-	} else if path[:1] == "/" {
+	} else if path[0] == '/' {
 		return p.path
 	} else {
-		path = filepath.Join(p.path, path)
+		newPath = filepath.Join(p.path, string(path))
 	}
 
-	if len(path) <= len(p.workDir) {
+	if len(newPath) <= len(p.workDir) {
 		return p.workDir
 	}
 
-	return strings.ReplaceAll(path, "//", "/")
+	return newPath
 }
 
 func (p *Context) Close() error {

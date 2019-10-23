@@ -2,6 +2,7 @@ package ftp
 
 import (
 	"bytes"
+	"os"
 )
 
 // commandALLO responds 'ALLO' command
@@ -17,10 +18,8 @@ func commandCDUP(ctx *Context) {
 
 // commandCWD responds 'CWD' command
 func commandCWD(ctx *Context) {
-	path := string(ctx.param)
-	path = ctx.GetAbsPath(path)
+	path := ctx.GetAbsPath(ctx.param)
 	if ctx.ChangeDir(path) {
-		ctx.path = path
 		ctx.WriteMessage(250, "Directory changed to "+path)
 		return
 	}
@@ -29,7 +28,13 @@ func commandCWD(ctx *Context) {
 
 // commandDELE responds 'DELE' command
 func commandDELE(ctx *Context) {
-
+	path := ctx.GetAbsPath(ctx.param)
+	if err := os.RemoveAll(path); err != nil {
+		ctx.Error(err)
+		ctx.WriteMessage(550, "Action not taken")
+		return
+	}
+	ctx.WriteMessage(250, "File deleted")
 }
 
 // commandEPRT responds 'EPRT' command

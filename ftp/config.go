@@ -23,8 +23,8 @@ type Config struct {
 
 	Accounts []*Account `json:"accounts" xml:"accounts" yaml:"accounts" toml:"accounts"`
 
-	addr    string
-	userMap map[string]*Account
+	addr       string
+	accountMap map[string]*Account
 }
 
 type Account struct {
@@ -53,15 +53,18 @@ func (p *Config) init() error {
 
 	p.addr = GetTcpAddr(p.Host, p.Port)
 
-	p.userMap = make(map[string]*Account, len(p.Accounts))
+	p.accountMap = make(map[string]*Account, len(p.Accounts))
 	if p.Accounts != nil && len(p.Accounts) > 0 {
-		for _, v := range p.Accounts {
-			if len(v.Username) > 0 && len(v.Password) > 0 {
-				p.userMap[v.Username] = v
+		for _, account := range p.Accounts {
+			if len(account.Username) > 0 && len(account.Password) > 0 {
+				if account.Dir == ".." {
+					account.Dir = ""
+				}
+				p.accountMap[account.Username] = account
 			}
 		}
 	} else {
-		p.userMap["admin"] = &Account{"admin", "admin", ""}
+		p.accountMap["admin"] = &Account{"admin", "admin", ""}
 	}
 
 	return nil
