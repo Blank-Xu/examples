@@ -5,6 +5,9 @@ import (
 	"bytes"
 	"errors"
 	"net"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 type Context struct {
@@ -14,9 +17,10 @@ type Context struct {
 	clientAddr    string
 	writer        *bufio.Writer // Writer on the TCP connection
 	reader        *bufio.Reader // Reader on the TCP connection
-	user          []byte        // Authenticated user
-	pass          []byte        //
-	path          []byte        // Current path
+	user          string        // Authenticated user
+	pass          string        //
+	workDir       string        // work dir
+	path          string        // Current path
 	data          []byte        // request data
 	command       string        // Command received on the connection
 	param         []byte        // Param of the FTP command
@@ -30,28 +34,16 @@ type Context struct {
 
 func NewContext(config *Config, conn *net.TCPConn) *Context {
 	p := &Context{
-		config:        config,
-		conn:          conn,
-		clientAddr:    conn.RemoteAddr().String(),
-		writer:        bufio.NewWriter(conn),
-		reader:        bufio.NewReader(conn),
-		user:          nil,
-		path:          nil,
-		param:         nil,
-		connectedTime: 0,
-		ctxRnfr:       nil,
-		ctxRest:       nil,
-
-		log: &Logger{},
+		config:     config,
+		conn:       conn,
+		clientAddr: conn.RemoteAddr().String(),
+		writer:     bufio.NewWriter(conn),
+		reader:     bufio.NewReader(conn),
+		workDir:    config.Dir,
+		path:       config.Dir,
+		log:        &Logger{},
 	}
 	return p
-}
-
-func (p *Context) Error(err error) error {
-	if err != nil {
-		p.errs = append(p.errs, err)
-	}
-	return err
 }
 
 func (p *Context) Read() error {
@@ -86,13 +78,21 @@ func (p *Context) ParseParam() bool {
 		p.command = string(params[0])
 	case 2:
 		p.command = string(params[0])
-		p.param = params[1]
+		p.param = make([]byte, len(params[1]))
+		copy(p.param, params[1])
 	}
 	return true
 }
 
-func (p *Context) Authenticate(pass []byte) bool {
-
+func (p *Context) Authenticate(pass string) bool {
+	account, ok := p.config.userMap[p.user]
+	if !ok {
+		return false
+	}
+	if account.Password == pass {
+		p.workDir = filepath.Join(p.workDir, account.Dir)
+		return true
+	}
 	return false
 }
 
@@ -120,6 +120,40 @@ func (p *Context) WriteMessage(code int32, msg string) (err error) {
 	return p.Error(err)
 }
 
+func (p *Context) ChangeDir(dir string) bool {
+	dir = filepath.Join(p.workDir, dir)
+	_, err := os.Stat(dir)
+	p.Error(err)
+	if err != nil {
+		p.path = dir
+		return true
+	}
+	return false
+}
+
+func (p *Context) GetAbsPath(path string) string {
+	if len(path) == 0 {
+		return p.path
+	} else if path[:1] == "/" {
+		return p.path
+	} else {
+		path = filepath.Join(p.path, path)
+	}
+
+	if len(path) <= len(p.workDir) {
+		return p.workDir
+	}
+
+	return strings.ReplaceAll(path, "//", "/")
+}
+
 func (p *Context) Close() error {
-	return p.conn.Close()
+	return p.Error(p.conn.Close())
+}
+
+func (p *Context) Error(err error) error {
+	if err != nil {
+		p.errs = append(p.errs, err)
+	}
+	return err
 }

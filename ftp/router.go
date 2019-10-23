@@ -4,27 +4,33 @@ import (
 	"strings"
 )
 
+type commandFunc struct {
+	HandlerFunc
+	NeedLogin bool
+	NeedParam bool
+}
+
 var (
-	routerMap = map[string]HandlerFunc{
-		"ALLO": commandALLO,
-		"CDUP": checkLogin(commandCDUP),
-		"CWD":  checkLoginAndParam(commandCWD),
-		"DELE": checkLoginAndParam(commandDELE),
-		"EPRT": checkLoginAndParam(commandEPRT),
-		"EPSV": checkLogin(commandEPSV),
-		"FEAT": commandFEAT,
-		"LIST": checkLogin(commandLIST),
+	routerMap = map[string]*commandFunc{
+		"ALLO": &commandFunc{HandlerFunc: commandALLO},
+		"CDUP": &commandFunc{HandlerFunc: commandCDUP, NeedLogin: true},
+		"CWD":  &commandFunc{HandlerFunc: commandCWD, NeedLogin: true, NeedParam: true},
+		"DELE": &commandFunc{HandlerFunc: commandDELE, NeedLogin: true, NeedParam: true},
+		"EPRT": &commandFunc{HandlerFunc: commandEPRT, NeedLogin: true, NeedParam: true},
+		"EPSV": &commandFunc{HandlerFunc: commandEPSV, NeedLogin: true},
+		"FEAT": &commandFunc{HandlerFunc: commandFEAT},
+		"LIST": &commandFunc{HandlerFunc: commandLIST, NeedLogin: true},
 		"NLST": nil,
 		"MDTM": nil,
 		"MKD":  nil,
 		"MODE": nil,
 		"NOOP": nil,
-		"OPTS": commandOPTS,
-		"PASS": commandPASS,
+		"OPTS": &commandFunc{HandlerFunc: commandOPTS},
+		"PASS": &commandFunc{HandlerFunc: commandPASS, NeedLogin: false, NeedParam: true},
 		"PASV": nil,
 		"PORT": nil,
 		"PWD":  nil,
-		"QUIT": commandQUIT,
+		"QUIT": &commandFunc{HandlerFunc: commandQUIT},
 		"RETR": nil,
 		"RNFR": nil,
 		"RNTO": nil,
@@ -33,8 +39,8 @@ var (
 		"STOR": nil,
 		"STRU": nil,
 		"SYST": nil,
-		"TYPE": commandTYPE,
-		"USER": commandUSER,
+		"TYPE": &commandFunc{HandlerFunc: commandTYPE},
+		"USER": &commandFunc{HandlerFunc: commandUSER},
 		"XCUP": nil,
 		"XCWD": nil,
 		"XPWD": nil,
@@ -81,10 +87,21 @@ var (
 )
 
 func init() {
-	var m = make(map[string]HandlerFunc, len(routerMap))
+	var m = make(map[string]*commandFunc, len(routerMap))
 	for command, fn := range routerMap {
-		cmd := strings.ToLower(command)
+		if fn == nil {
+			continue
+		}
+		if fn.NeedLogin {
+			fn.HandlerFunc = checkLogin(fn.HandlerFunc)
+		}
+		if fn.NeedParam {
+			fn.HandlerFunc = checkParam(fn.HandlerFunc)
+		}
+
 		m[command] = fn
+
+		cmd := strings.ToLower(command)
 		m[cmd] = fn
 	}
 	routerMap = m

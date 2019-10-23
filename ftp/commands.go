@@ -11,12 +11,20 @@ func commandALLO(ctx *Context) {
 
 // commandCDUP responds 'CDUP' command
 func commandCDUP(ctx *Context) {
+	ctx.param = []byte("..")
 	commandCWD(ctx)
 }
 
 // commandCWD responds 'CWD' command
 func commandCWD(ctx *Context) {
-	ctx.path = ctx.param
+	path := string(ctx.param)
+	path = ctx.GetAbsPath(path)
+	if ctx.ChangeDir(path) {
+		ctx.path = path
+		ctx.WriteMessage(250, "Directory changed to "+path)
+		return
+	}
+	ctx.WriteMessage(550, "Action not taken")
 }
 
 // commandDELE responds 'DELE' command
@@ -45,7 +53,8 @@ const _msgFEAT = "211-Features supported:\r\n" +
 // commandFEAT responds 'FEAT' command
 func commandFEAT(ctx *Context) {
 	var buf = bytes.NewBufferString(_msgFEAT)
-	buf.WriteTo(ctx.writer)
+	_, err := buf.WriteTo(ctx.writer)
+	ctx.Error(err)
 }
 
 // commandLIST responds 'LIST' command
@@ -56,13 +65,15 @@ func commandLIST(ctx *Context) {
 
 // commandUSER responds 'USER' command
 func commandUSER(ctx *Context) {
-	ctx.user = ctx.param
+	ctx.user = string(ctx.param)
 	ctx.WriteMessage(331, "OK")
 }
 
 // commandPASS responds 'PASS' command
 func commandPASS(ctx *Context) {
-	if ok := ctx.Authenticate(ctx.param); ok {
+	var pass = string(ctx.param)
+	if ok := ctx.Authenticate(pass); ok {
+		ctx.pass = pass
 		ctx.WriteMessage(230, "Password ok, continue")
 		return
 	}

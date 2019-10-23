@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-var DefaultServer = NewServer(&Config{})
+var DefaultServer, _ = NewServer(&Config{})
 
 type HandlerFunc func(*Context)
 
@@ -14,14 +14,12 @@ type Server struct {
 	listener *net.TCPListener
 }
 
-func NewServer(cfg *Config) *Server {
+func NewServer(cfg *Config) (*Server, error) {
 	if cfg == nil {
 		cfg = &Config{}
 	}
 
-	cfg.init()
-
-	return &Server{config: cfg}
+	return &Server{config: cfg}, cfg.init()
 }
 
 // func SetConfig(cfg Config)  {
@@ -104,7 +102,7 @@ func (p *Server) handle(conn *net.TCPConn) {
 			continue
 		}
 
-		fn(ctx)
+		fn.HandlerFunc(ctx)
 
 		if len(ctx.errs) > 0 {
 
