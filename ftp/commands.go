@@ -2,7 +2,9 @@ package ftp
 
 import (
 	"bytes"
+	"fmt"
 	"os"
+	"strconv"
 )
 
 // commandALLO responds 'ALLO' command
@@ -39,12 +41,52 @@ func commandDELE(ctx *Context) {
 
 // commandEPRT responds 'EPRT' command
 func commandEPRT(ctx *Context) {
+	parts := bytes.Split(ctx.param, []byte{ctx.param[0]})
+	if len(parts) < 3 {
+		ctx.WriteMessage(553, "action aborted, required param missing")
+		return
+	}
+	addressFamily := string(parts[1])
+	if addressFamily != "1" && addressFamily != "2" {
+		ctx.WriteMessage(522, "Network protocol not supported, use (1,2)")
+		return
+	}
 
+	port, err := strconv.Atoi(string(parts[3]))
+	if err != nil {
+		ctx.WriteMessage(553, "action aborted, required param missing")
+		return
+	}
+
+	host := string(parts[2])
+	conn, err := NewActiveTCPConn(host, port)
+	if err != nil {
+		ctx.WriteMessage(425, "Data connection failed")
+		return
+	}
+
+	if ctx.dataConn != nil {
+		ctx.dataConn.Close()
+		ctx.dataConn = nil
+	}
+	ctx.dataConn = conn
+
+	ctx.WriteMessage(200, fmt.Sprintf("Connection established (%d)", port))
 }
 
 // commandEPSV responds 'EPSV' command
 func commandEPSV(ctx *Context) {
-
+	conn, err := NewPassiveTCPListener(ctx.config.Host, int(ctx.config.PasvMinPort), int(ctx.config.PasvMaxPort))
+	if err != nil {
+		ctx.WriteMessage(425, "Data connection failed")
+		return
+	}
+	if ctx.dataConn != nil {
+		ctx.dataConn.Close()
+		ctx.dataConn = nil
+	}
+	// ctx.dataConn = conn
+	// ctx.WriteMessage(229,fmt.Sprintf("Entering Extended Passive Mode (|||%d|)", conn.Addr()))
 }
 
 const _msgFEAT = "211-Features supported:\r\n" +

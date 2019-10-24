@@ -1,6 +1,7 @@
 package ftp
 
 import (
+	"errors"
 	"os"
 )
 
@@ -51,7 +52,11 @@ func (p *Config) init() error {
 		p.DeadlineSeconds = 30
 	}
 
-	p.addr = GetTcpAddr(p.Host, p.Port)
+	p.addr = GetAddress(p.Host, int(p.Port))
+
+	if p.PasvMaxPort < p.PasvMinPort || p.PasvMaxPort > 65534 {
+		return errors.New("params invalid, please check  pasv port")
+	}
 
 	p.accountMap = make(map[string]*Account, len(p.Accounts))
 	if p.Accounts != nil && len(p.Accounts) > 0 {

@@ -13,6 +13,7 @@ type Context struct {
 	config *Config
 
 	conn          *net.TCPConn
+	dataConn      *net.TCPConn
 	clientAddr    string
 	writer        *bufio.Writer // Writer on the TCP connection
 	reader        *bufio.Reader // Reader on the TCP connection
