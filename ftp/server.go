@@ -97,7 +97,7 @@ func (p *Server) handle(conn *net.TCPConn) {
 		}
 
 		fn, ok := routerMap[ctx.command]
-		if !ok {
+		if !ok || fn == nil {
 			ctx.WriteMessage(500, "Command not found")
 			continue
 		}
@@ -106,6 +106,7 @@ func (p *Server) handle(conn *net.TCPConn) {
 
 		if len(ctx.errs) > 0 {
 
+			ctx.errs = make([]error, 0, 10)
 		}
 	}
 }

@@ -208,19 +208,6 @@ func BenchmarkBinarySearch(b *testing.B) {
 	}
 }
 
-func BenchmarkBinarySearch2(b *testing.B) {
-	rnd := rand.New(rand.NewSource(time.Now().Unix()))
-	// b.Log(l)
-	for i := 0; i < b.N; i++ {
-		idx := rnd.Int31n(int32(l))
-		// b.Log(idx)
-		num := BinarySearch2(commandByte, stringToInt(commandSlice[idx]))
-		if num == -1 {
-			b.Fatal("not found")
-		}
-	}
-}
-
 func BinarySearch(sortedData []string, s string) int {
 	var low, high, mid = 0, l - 1, 0
 	for low <= high {

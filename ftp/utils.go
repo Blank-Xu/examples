@@ -3,8 +3,10 @@ package ftp
 import (
 	"bytes"
 	"errors"
+	"io/ioutil"
 	"math/rand"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +16,7 @@ var random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func GetAddress(host string, port int) (addr string) {
 	var buf bytes.Buffer
+	buf.Grow(len(host) * 2)
 	if strings.IndexByte(host, ':') > -1 {
 		buf.WriteByte('[')
 		buf.WriteString(host)
@@ -68,4 +71,25 @@ func NewTcpListener(host string, port int) (*net.TCPListener, error) {
 	}
 
 	return net.ListenTCP("tcp", tcpAddr)
+}
+
+func GetFileList(absPath, path string) (files []os.FileInfo, err error) {
+	var now = time.Now().UTC()
+	switch path {
+	case "/debug":
+		return
+	case "/virtual":
+		files = []os.FileInfo{
+			NewFileInfo("localpath.txt", 1024, now),
+			NewFileInfo("file2.txt", 2048, now),
+		}
+	default:
+		if files, err = ioutil.ReadDir(absPath); err != nil {
+			return
+		}
+		if path == "/" {
+			files = append(files, NewFileInfo("virtual", 4096, now))
+		}
+	}
+	return
 }

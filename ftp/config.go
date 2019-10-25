@@ -41,7 +41,7 @@ func (p *Config) init() error {
 	if len(p.Dir) == 0 {
 		p.Dir = "/"
 	}
-	if err := os.Mkdir(p.Dir, 0777); err != nil {
+	if err := os.Mkdir(p.Dir, 0666); err != nil {
 		return err
 	}
 
@@ -55,7 +55,7 @@ func (p *Config) init() error {
 	p.addr = GetAddress(p.Host, int(p.Port))
 
 	if p.PasvMaxPort < p.PasvMinPort || p.PasvMaxPort > 65534 {
-		return errors.New("params invalid, please check  pasv port")
+		return errors.New("params invalid, please check pasv port")
 	}
 
 	p.accountMap = make(map[string]*Account, len(p.Accounts))

@@ -7,14 +7,15 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 type Context struct {
 	config *Config
+	conn   *net.TCPConn
 
-	conn          *net.TCPConn
 	dataConn      *net.TCPConn
-	clientAddr    string
+	listener      *net.TCPListener
 	writer        *bufio.Writer // Writer on the TCP connection
 	reader        *bufio.Reader // Reader on the TCP connection
 	user          string        // Authenticated user
@@ -26,22 +27,21 @@ type Context struct {
 	param         []byte        // Param of the FTP command
 	connectedTime int64         // Date of connection
 	timeoutSecond int64         //
-	ctxRnfr       []byte        // Rename from
-	ctxRest       []byte        // Restart point
+	fnfr          string        // Rename from
+	rest          []byte        // Restart point
 	errs          []error       // record errors
 	log           *Logger       // Client handler logging
 }
 
 func NewContext(config *Config, conn *net.TCPConn) *Context {
 	p := &Context{
-		config:     config,
-		conn:       conn,
-		clientAddr: conn.RemoteAddr().String(),
-		writer:     bufio.NewWriter(conn),
-		reader:     bufio.NewReader(conn),
-		workDir:    config.Dir,
-		path:       config.Dir,
-		log:        &Logger{},
+		config:  config,
+		conn:    conn,
+		writer:  bufio.NewWriter(conn),
+		reader:  bufio.NewReader(conn),
+		workDir: config.Dir,
+		path:    config.Dir,
+		log:     &Logger{},
 	}
 	return p
 }
@@ -69,9 +69,8 @@ func (p *Context) Read() error {
 
 func (p *Context) ParseParam() bool {
 	p.data = bytes.Trim(p.data, "\r\n")
-	params := bytes.SplitN(p.data, []byte(" "), 2)
-	var l = len(params)
-	switch l {
+	params := bytes.SplitN(p.data, []byte{' '}, 2)
+	switch len(params) {
 	case 0:
 		return false
 	case 1:
@@ -98,6 +97,7 @@ func (p *Context) Authenticate(pass string) bool {
 
 func (p *Context) WriteLine(line []byte) (err error) {
 	var buf bytes.Buffer
+	buf.Grow(len(line) + 10)
 	buf.Write(line)
 	buf.WriteString("\r\n")
 	_, err = buf.WriteTo(p.writer)
@@ -110,9 +110,10 @@ func (p *Context) WriteBuffer(buf *bytes.Buffer) (err error) {
 	return p.Error(err)
 }
 
-func (p *Context) WriteMessage(code int32, msg string) (err error) {
+func (p *Context) WriteMessage(code int, msg string) (err error) {
 	var buf bytes.Buffer
-	buf.WriteRune(rune(code))
+	buf.Grow(len(msg) + 10)
+	buf.WriteString(strconv.Itoa(code))
 	buf.WriteByte(' ')
 	buf.WriteString(msg)
 	buf.WriteString("\r\n")
@@ -123,8 +124,8 @@ func (p *Context) WriteMessage(code int32, msg string) (err error) {
 func (p *Context) ChangeDir(dir string) bool {
 	dir = filepath.Join(p.workDir, dir)
 	_, err := os.Stat(dir)
-	p.Error(err)
 	if err != nil {
+		p.Error(err)
 		p.path = dir
 		return true
 	}
@@ -148,8 +149,16 @@ func (p *Context) GetAbsPath(path []byte) string {
 	return newPath
 }
 
-func (p *Context) Close() error {
-	return p.Error(p.conn.Close())
+func (p *Context) Close() {
+	if p.conn != nil {
+		p.Error(p.conn.Close())
+	}
+	if p.dataConn != nil {
+		p.Error(p.dataConn.Close())
+	}
+	if p.listener != nil {
+		p.Error(p.listener.Close())
+	}
 }
 
 func (p *Context) Error(err error) error {
