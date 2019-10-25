@@ -110,8 +110,9 @@ const _msgFEAT = "211-Features supported:\r\n" +
 // commandFEAT responds 'FEAT' command
 func commandFEAT(ctx *Context) {
 	var buf = bytes.NewBufferString(_msgFEAT)
-	_, err := buf.WriteTo(ctx.writer)
-	ctx.Error(err)
+	if _, err := buf.WriteTo(ctx.writer); err != nil {
+		ctx.Error(err)
+	}
 }
 
 // commandLIST responds 'LIST' command

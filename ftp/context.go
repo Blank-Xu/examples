@@ -100,14 +100,18 @@ func (p *Context) WriteLine(line []byte) (err error) {
 	buf.Grow(len(line) + 10)
 	buf.Write(line)
 	buf.WriteString("\r\n")
-	_, err = buf.WriteTo(p.writer)
-	return p.Error(err)
+	if _, err = buf.WriteTo(p.writer); err != nil {
+		p.Error(err)
+	}
+	return
 }
 
 func (p *Context) WriteBuffer(buf *bytes.Buffer) (err error) {
 	buf.WriteString("\r\n")
-	_, err = buf.WriteTo(p.writer)
-	return p.Error(err)
+	if _, err = buf.WriteTo(p.writer); err != nil {
+		p.Error(err)
+	}
+	return
 }
 
 func (p *Context) WriteMessage(code int, msg string) (err error) {
@@ -117,19 +121,20 @@ func (p *Context) WriteMessage(code int, msg string) (err error) {
 	buf.WriteByte(' ')
 	buf.WriteString(msg)
 	buf.WriteString("\r\n")
-	_, err = buf.WriteTo(p.writer)
-	return p.Error(err)
+	if _, err = buf.WriteTo(p.writer); err != nil {
+		p.Error(err)
+	}
+	return
 }
 
 func (p *Context) ChangeDir(dir string) bool {
 	dir = filepath.Join(p.workDir, dir)
-	_, err := os.Stat(dir)
-	if err != nil {
+	if _, err := os.Stat(dir); err != nil {
 		p.Error(err)
-		p.path = dir
-		return true
+		return false
 	}
-	return false
+	p.path = dir
+	return true
 }
 
 func (p *Context) GetAbsPath(path []byte) string {
@@ -150,20 +155,24 @@ func (p *Context) GetAbsPath(path []byte) string {
 }
 
 func (p *Context) Close() {
+	var err error
 	if p.conn != nil {
-		p.Error(p.conn.Close())
+		if err = p.conn.Close(); err != nil {
+			p.Error(err)
+		}
 	}
 	if p.dataConn != nil {
-		p.Error(p.dataConn.Close())
+		if err = p.dataConn.Close(); err != nil {
+			p.Error(err)
+		}
 	}
 	if p.listener != nil {
-		p.Error(p.listener.Close())
+		if err = p.listener.Close(); err != nil {
+			p.Error(err)
+		}
 	}
 }
 
-func (p *Context) Error(err error) error {
-	if err != nil {
-		p.errs = append(p.errs, err)
-	}
-	return err
+func (p *Context) Error(err error) {
+	p.errs = append(p.errs, err)
 }
