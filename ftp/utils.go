@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -92,4 +93,19 @@ func GetFileList(absPath, path string) (files []os.FileInfo, err error) {
 		}
 	}
 	return
+}
+
+func GetAbsPath(workDir, path string) string {
+	if len(path) == 0 || path[0] == '/' {
+		return workDir
+	}
+
+	var (
+		newPath = filepath.Join(workDir, path)
+		l       = len(workDir)
+	)
+	if len(newPath) <= l || newPath[:l] != workDir {
+		return workDir
+	}
+	return newPath
 }

@@ -11,26 +11,28 @@ import (
 )
 
 type Context struct {
-	config *Config
-	conn   *net.TCPConn
-
-	dataConn      *net.TCPConn
-	listener      *net.TCPListener
-	writer        *bufio.Writer // Writer on the TCP connection
-	reader        *bufio.Reader // Reader on the TCP connection
-	user          string        // Authenticated user
-	pass          string        //
-	workDir       string        // work dir
-	path          string        // Current path
-	data          []byte        // request data
-	command       string        // Command received on the connection
-	param         []byte        // Param of the FTP command
+	config        *Config
+	conn          *net.TCPConn
 	connectedTime int64         // Date of connection
 	timeoutSecond int64         //
-	fnfr          string        // Rename from
-	rest          []byte        // Restart point
-	errs          []error       // record errors
-	log           *Logger       // Client handler logging
+	reader        *bufio.Reader // Reader on the TCP connection
+	writer        *bufio.Writer // Writer on the TCP connection
+	workDir       string        // work dir
+
+	data    []byte // Request data bytes
+	command string // Command received on the connection
+	param   []byte // Param of the FTP command
+
+	dataConn *net.TCPConn
+	listener *net.TCPListener
+	path     string // Current path
+	user     string // Authenticated user
+	pass     string //
+	rnfr     string // Rename from command path
+	rest     []byte // Restart point
+
+	errs []error // record errors
+	log  *Logger // Client handler logging
 }
 
 func NewContext(config *Config, conn *net.TCPConn) *Context {
@@ -89,7 +91,7 @@ func (p *Context) Authenticate(pass string) bool {
 		return false
 	}
 	if account.Password == pass {
-		p.workDir = filepath.Join(p.workDir, account.Dir)
+		p.workDir = GetAbsPath(p.workDir, account.Dir)
 		return true
 	}
 	return false
@@ -138,20 +140,12 @@ func (p *Context) ChangeDir(dir string) bool {
 }
 
 func (p *Context) GetAbsPath(path []byte) string {
-	var newPath string
-	if len(path) == 0 {
-		return p.path
-	} else if path[0] == '/' {
-		return p.path
-	} else {
-		newPath = filepath.Join(p.path, string(path))
-	}
+	return GetAbsPath(p.workDir, string(path))
+}
 
-	if len(newPath) <= len(p.workDir) {
-		return p.workDir
-	}
+func (p *Context) Upload(write bool, append bool) error {
 
-	return newPath
+	return nil
 }
 
 func (p *Context) Close() {

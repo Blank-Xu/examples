@@ -28,9 +28,9 @@ func commandCDUP(ctx *Context) {
 
 // commandCWD responds 'CWD' command
 func commandCWD(ctx *Context) {
-	path := ctx.GetAbsPath(ctx.param)
-	if ctx.ChangeDir(path) {
-		ctx.WriteMessage(250, "Directory changed to "+path)
+	absPath := ctx.GetAbsPath(ctx.param)
+	if ctx.ChangeDir(absPath) {
+		ctx.WriteMessage(250, "Directory changed to "+absPath)
 		return
 	}
 	ctx.WriteMessage(550, "Action not taken")
@@ -38,8 +38,8 @@ func commandCWD(ctx *Context) {
 
 // commandDELE responds 'DELE' command
 func commandDELE(ctx *Context) {
-	path := ctx.GetAbsPath(ctx.param)
-	if err := os.RemoveAll(path); err != nil {
+	absPath := ctx.GetAbsPath(ctx.param)
+	if err := os.RemoveAll(absPath); err != nil {
 		ctx.Error(err)
 		ctx.WriteMessage(550, "Action not taken")
 		return
@@ -227,11 +227,12 @@ func commandPASS(ctx *Context) {
 	pass := string(ctx.param)
 	if ok := ctx.Authenticate(pass); ok {
 		ctx.pass = pass
-		ctx.WriteMessage(230, "Password ok, continue")
+		ctx.WriteMessage(230, "Password verified, continue")
 		return
 	}
 
-	ctx.WriteMessage(530, "Incorrect password, not logged in")
+	ctx.WriteMessage(530, "Incorrect password")
+	ctx.command = "QUIT"
 	commandQUIT(ctx)
 }
 
@@ -248,6 +249,10 @@ func commandPASV(ctx *Context) {
 		ctx.listener = nil
 	}
 	ctx.listener = listener
+
+	if err = listener.SetDeadline(time.Now().Add(time.Duration(ctx.config.DeadlineSeconds))); err != nil {
+		ctx.Error(err)
+	}
 
 	addr := listener.Addr().(*net.TCPAddr)
 	p1 := addr.Port / 256
@@ -314,7 +319,6 @@ func commandPWD(ctx *Context) {
 func commandQUIT(ctx *Context) {
 	ctx.WriteMessage(221, "Goodbye.")
 	ctx.Close()
-	ctx = nil
 }
 
 // commandRETR responds 'RETR' command
@@ -351,13 +355,60 @@ func commandRETR(ctx *Context) {
 func commandRNFR(ctx *Context) {
 	absPath := ctx.GetAbsPath(ctx.param)
 	if _, err := os.Stat(absPath); err != nil {
-		if os.IsNotExist(err) {
+		ctx.WriteMessage(550, fmt.Sprintf("Couldn't access %s: %v", absPath, err))
+		return
+	}
+	ctx.rnfr = absPath
+	ctx.WriteMessage(200, "Sure, give me a target")
+}
 
-		}
+// commandRNTO responds 'RNTO' command
+func commandRNTO(ctx *Context) {
+	if len(ctx.rnfr) == 0 {
+		ctx.WriteMessage(503, "Bad sequence of commands: use RNFR first.")
+		return
 	}
 
-	ctx.fnfr = absPath
-	ctx.WriteMessage(200, "")
+	absPath := ctx.GetAbsPath(ctx.param)
+	if err := os.Rename(ctx.rnfr, absPath); err != nil {
+		ctx.WriteMessage(550, "Action not taken")
+		return
+	}
+
+	ctx.rnfr = ""
+	ctx.WriteMessage(250, "File renamed")
+}
+
+// commandRMD responds 'RMD' command
+func commandRMD(ctx *Context) {
+	absPath := ctx.GetAbsPath(ctx.param)
+	if err := os.RemoveAll(absPath); err != nil {
+		ctx.WriteMessage(550, "Action not taken")
+		return
+	}
+	ctx.WriteMessage(250, "Directory deleted")
+}
+
+// commandSIZE responds 'SIZE' command
+func commandSIZE(ctx *Context) {
+	absPath := ctx.GetAbsPath(ctx.param)
+	file, err := os.Stat(absPath)
+	if err != nil {
+		ctx.WriteMessage(450, "file not available")
+		return
+	}
+	ctx.WriteMessage(213, strconv.FormatInt(file.Size(), 10))
+}
+
+// commandSTOR responds 'STOR' command
+func commandSTOR(ctx *Context) {
+	if ctx.dataConn == nil {
+		ctx.WriteMessage(450, "have no connection to transfer")
+		return
+	}
+	// absPath := ctx.GetAbsPath(ctx.param)
+	ctx.WriteMessage(150, "Data transfer starting")
+
 }
 
 // commandTYPE responds 'TYPE' command
