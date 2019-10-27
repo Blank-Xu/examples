@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net"
 	"os"
-	"path/filepath"
 	"strconv"
 )
 
@@ -28,8 +27,10 @@ type Context struct {
 	path     string // Current path
 	user     string // Authenticated user
 	pass     string //
-	rnfr     string // Rename from command path
-	rest     []byte // Restart point
+
+	abor chan struct{}
+	rnfr string // Rename from command path
+	rest []byte // Restart point
 
 	errs []error // record errors
 	log  *Logger // Client handler logging
@@ -130,7 +131,6 @@ func (p *Context) WriteMessage(code int, msg string) (err error) {
 }
 
 func (p *Context) ChangeDir(dir string) bool {
-	dir = filepath.Join(p.workDir, dir)
 	if _, err := os.Stat(dir); err != nil {
 		p.Error(err)
 		return false
@@ -143,18 +143,13 @@ func (p *Context) GetAbsPath(path []byte) string {
 	return GetAbsPath(p.workDir, string(path))
 }
 
-func (p *Context) Upload(write bool, append bool) error {
+func (p *Context) TransferFile(path string, write, append bool) error {
 
 	return nil
 }
 
-func (p *Context) Close() {
+func (p *Context) Abort() {
 	var err error
-	if p.conn != nil {
-		if err = p.conn.Close(); err != nil {
-			p.Error(err)
-		}
-	}
 	if p.dataConn != nil {
 		if err = p.dataConn.Close(); err != nil {
 			p.Error(err)
@@ -162,6 +157,16 @@ func (p *Context) Close() {
 	}
 	if p.listener != nil {
 		if err = p.listener.Close(); err != nil {
+			p.Error(err)
+		}
+	}
+}
+
+func (p *Context) Close() {
+	p.Abort()
+	var err error
+	if p.conn != nil {
+		if err = p.conn.Close(); err != nil {
 			p.Error(err)
 		}
 	}

@@ -12,6 +12,7 @@ type commandFunc struct {
 
 var (
 	routerMap = map[string]*commandFunc{
+		"ABOR": &commandFunc{HandlerFunc: commandABOR, NeedLogin: true},
 		"ALLO": &commandFunc{HandlerFunc: commandALLO},
 		"CDUP": &commandFunc{HandlerFunc: commandCDUP, NeedLogin: true},
 		"CWD":  &commandFunc{HandlerFunc: commandCWD, NeedLogin: true, NeedParam: true},
@@ -36,11 +37,11 @@ var (
 		"RNTO": &commandFunc{HandlerFunc: commandRNTO, NeedLogin: true, NeedParam: true},
 		"RMD":  &commandFunc{HandlerFunc: commandRMD, NeedLogin: true, NeedParam: true},
 		"SIZE": &commandFunc{HandlerFunc: commandSIZE, NeedLogin: true, NeedParam: true},
-		"STOR": &commandFunc{HandlerFunc:commandSTOR,NeedLogin:true,NeedParam:true},
-		"STRU": nil,
-		"SYST": nil,
-		"TYPE": &commandFunc{HandlerFunc: commandTYPE},
-		"USER": &commandFunc{HandlerFunc: commandUSER},
+		"STOR": &commandFunc{HandlerFunc: commandSTOR, NeedLogin: true, NeedParam: true},
+		"STRU": &commandFunc{HandlerFunc: commandSTRU, NeedLogin: true, NeedParam: true},
+		"SYST": &commandFunc{HandlerFunc: commandSYST, NeedLogin: true},
+		"TYPE": &commandFunc{HandlerFunc: commandTYPE, NeedLogin: true},
+		"USER": &commandFunc{HandlerFunc: commandUSER, NeedLogin: false, NeedParam: true},
 		"XCUP": nil,
 		"XCWD": nil,
 		"XPWD": nil,

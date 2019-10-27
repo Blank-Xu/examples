@@ -8,12 +8,20 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
 var listRegexp = regexp.MustCompile("^-[alt]+$")
+
+// commandABOR responds 'ABOR' command
+func commandABOR(ctx *Context) {
+	ctx.WriteMessage(200, "OK")
+	ctx.Abort()
+}
 
 // commandALLO responds 'ALLO' command
 func commandALLO(ctx *Context) {
@@ -192,13 +200,12 @@ func commandMKD(ctx *Context) {
 
 // commandMODE responds 'MODE' command
 func commandMODE(ctx *Context) {
-	mode := string(ctx.param)
-	switch mode {
-	case "s", "S":
+	param := string(ctx.param)
+	if param == "S" || param == "s" {
 		ctx.WriteMessage(200, "OK")
-	default:
-		ctx.WriteMessage(504, "MODE is an obsolete command")
+		return
 	}
+	ctx.WriteMessage(504, "MODE is an obsolete command")
 }
 
 // commandNOOP responds 'NOOP' command
@@ -208,8 +215,8 @@ func commandNOOP(ctx *Context) {
 
 // commandOPTS responds 'OPTS' command
 func commandOPTS(ctx *Context) {
-	opts := string(ctx.param)
-	if opts == "UTF8" || opts == "UTF8 ON" {
+	param := string(ctx.param)
+	if param == "UTF8" || param == "UTF8 ON" {
 		ctx.WriteMessage(200, "OK")
 		return
 	}
@@ -224,9 +231,9 @@ func commandUSER(ctx *Context) {
 
 // commandPASS responds 'PASS' command
 func commandPASS(ctx *Context) {
-	pass := string(ctx.param)
-	if ok := ctx.Authenticate(pass); ok {
-		ctx.pass = pass
+	param := string(ctx.param)
+	if ok := ctx.Authenticate(param); ok {
+		ctx.pass = param
 		ctx.WriteMessage(230, "Password verified, continue")
 		return
 	}
@@ -276,9 +283,20 @@ func commandPORT(ctx *Context) {
 	param := string(ctx.param)
 	params := strings.Split(param, ",")
 	if len(params) < 5 {
-		ctx.WriteMessage(500, "")
+		ctx.WriteMessage(500, "params invalid")
 		return
 	}
+	p1, err := strconv.Atoi(params[4])
+	if err != nil {
+		ctx.WriteMessage(500, "params invalid")
+		return
+	}
+	p2, err := strconv.Atoi(params[5])
+	if err != nil {
+		ctx.WriteMessage(500, "params invalid")
+		return
+	}
+	port := p1*256 + p2
 
 	var buf bytes.Buffer
 	buf.Grow(len(param))
@@ -289,10 +307,6 @@ func commandPORT(ctx *Context) {
 	buf.WriteString(params[2])
 	buf.WriteByte('.')
 	buf.WriteString(params[3])
-
-	p1, _ := strconv.Atoi(params[4])
-	p2, _ := strconv.Atoi(params[5])
-	port := p1*256 + p2
 
 	dataConn, err := NewActiveTCPConn(buf.String(), port)
 	if err != nil {
@@ -406,8 +420,32 @@ func commandSTOR(ctx *Context) {
 		ctx.WriteMessage(450, "have no connection to transfer")
 		return
 	}
-	// absPath := ctx.GetAbsPath(ctx.param)
 	ctx.WriteMessage(150, "Data transfer starting")
+	absPath := ctx.GetAbsPath(ctx.param)
+	if err := ctx.TransferFile(absPath, true, false); err != nil {
+		ctx.WriteMessage(550, "Transfer failed, err: "+err.Error())
+		return
+	}
+	ctx.WriteMessage(226, "Transfer complete.")
+}
+
+// commandSTRU responds 'STRU' command
+func commandSTRU(ctx *Context) {
+	param := string(ctx.param)
+	if param == "F" || param == "f" {
+		ctx.WriteMessage(200, "OK")
+		return
+	}
+	ctx.WriteMessage(504, "STRU is an obsolete command")
+}
+
+// commandSYST responds 'SYST' command
+func commandSYST(ctx *Context) {
+	ctx.WriteMessage(215, "UNIX Type: L8")
+}
+
+// commandTYPE responds 'TYPE' command
+func commandTYPE(ctx *Context) {
 
 }
 
