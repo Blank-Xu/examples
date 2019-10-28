@@ -35,11 +35,13 @@ func commandCDUP(ctx *Context) {
 // commandCWD responds 'CWD' command
 func commandCWD(ctx *Context) {
 	absPath := ctx.GetAbsPath(ctx.param)
-	if ctx.ChangeDir(absPath) {
-		ctx.WriteMessage(250, "Directory changed to "+absPath)
+	if _, err := os.Stat(absPath); err != nil {
+		ctx.Error(err)
+		ctx.WriteMessage(550, "Action not taken")
 		return
 	}
-	ctx.WriteMessage(550, "Action not taken")
+	ctx.path = string(ctx.param)
+	ctx.WriteMessage(250, "Directory changed to "+absPath)
 }
 
 // commandDELE responds 'DELE' command
@@ -79,11 +81,7 @@ func commandEPRT(ctx *Context) {
 		return
 	}
 
-	if ctx.dataConn != nil {
-		ctx.dataConn.Close()
-		ctx.dataConn = nil
-	}
-	ctx.dataConn = conn
+	ctx.SetDataConn(conn)
 
 	ctx.WriteMessage(200, fmt.Sprintf("Connection established (%d)", port))
 }
@@ -116,9 +114,7 @@ const _msgFEAT = "211-Features supported:\r\n" +
 // commandFEAT responds 'FEAT' command
 func commandFEAT(ctx *Context) {
 	var buf = bytes.NewBufferString(_msgFEAT)
-	if _, err := buf.WriteTo(ctx.writer); err != nil {
-		ctx.Error(err)
-	}
+	ctx.WriteBuffer(buf)
 }
 
 // commandLIST responds 'LIST' command
@@ -136,19 +132,28 @@ func commandLIST(ctx *Context) {
 		return
 	}
 
-	var buf bytes.Buffer
+	var (
+		now = time.Now()
+		buf bytes.Buffer
+	)
 	buf.Grow(1024)
 	for _, file := range files {
 		buf.WriteString(file.Mode().String())
 		buf.WriteString(" 1 owner group ")
-		buf.WriteString(strconv.FormatInt(file.Size(), 10))
+		buf.WriteString(fmt.Sprintf("%12d", file.Size()))
 		buf.WriteByte(' ')
-		buf.WriteString(strconv.FormatInt(file.ModTime().UTC().Unix(), 10))
+		buf.WriteString(GetFileModTime(now, file.ModTime()))
 		buf.WriteByte(' ')
 		buf.WriteString(file.Name())
 		buf.WriteString("\r\n")
 	}
-	ctx.WriteBuffer(&buf)
+	if err = ctx.WriteBuffer(&buf); err != nil {
+		ctx.WriteMessage(550, "Transfer failed.")
+		return
+	}
+	ctx.WriteMessage(226, "Transfer complete.")
+
+	time.Sleep(10 * time.Millisecond)
 }
 
 // commandNLST responds 'NLST' command
@@ -189,7 +194,7 @@ func commandMDTM(ctx *Context) {
 // commandMKD responds 'MKD' command
 func commandMKD(ctx *Context) {
 	absPath := ctx.GetAbsPath(ctx.param)
-	if err := os.Mkdir(absPath, 0666); err != nil {
+	if err := os.MkdirAll(absPath, 0766); err != nil {
 		ctx.WriteMessage(550, "Action not taken")
 		return
 	}
@@ -249,9 +254,9 @@ func commandPASV(ctx *Context) {
 	}
 	ctx.listener = listener
 
-	if err = listener.SetDeadline(time.Now().Add(time.Duration(ctx.config.DeadlineSeconds))); err != nil {
-		ctx.Error(err)
-	}
+	// if err = listener.SetDeadline(time.Now().Add(time.Duration(ctx.config.DeadlineSeconds))); err != nil {
+	// 	ctx.Error(err)
+	// }
 
 	addr := listener.Addr().(*net.TCPAddr)
 	p1 := addr.Port / 256
@@ -300,18 +305,12 @@ func commandPORT(ctx *Context) {
 	buf.WriteByte('.')
 	buf.WriteString(params[3])
 
-	dataConn, err := NewActiveTCPConn(buf.String(), port)
+	conn, err := NewActiveTCPConn(buf.String(), port)
 	if err != nil {
 		ctx.WriteMessage(425, "Data connection failed")
 		return
 	}
-	defer dataConn.Close()
-
-	if ctx.dataConn != nil {
-		ctx.dataConn.Close()
-		ctx.dataConn = nil
-	}
-	ctx.dataConn = dataConn
+	ctx.SetDataConn(conn)
 
 	ctx.WriteMessage(200, fmt.Sprintf("Connection established (%d)", port))
 }
@@ -343,8 +342,6 @@ func commandRETR(ctx *Context) {
 	defer file.Close()
 
 	ctx.WriteMessage(150, "Data connection open. Transfer starting.")
-
-	defer ctx.dataConn.Close()
 
 	if _, err = io.Copy(ctx.dataConn, file); err != nil {
 		ctx.Error(err)
@@ -412,6 +409,7 @@ func commandSTOR(ctx *Context) {
 		ctx.WriteMessage(450, "have no connection to transfer")
 		return
 	}
+
 	ctx.WriteMessage(150, "Data transfer starting")
 	absPath := ctx.GetAbsPath(ctx.param)
 	if err := ctx.TransferFile(absPath, true, false); err != nil {

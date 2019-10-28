@@ -4,19 +4,20 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"net"
-	"os"
 	"strconv"
+	"strings"
+	"time"
 )
 
 type Context struct {
-	config        *Config
-	conn          *net.TCPConn
-	connectedTime int64         // Date of connection
-	timeoutSecond int64         //
-	reader        *bufio.Reader // Reader on the TCP connection
-	writer        *bufio.Writer // Writer on the TCP connection
-	workDir       string        // work dir
+	config      *Config
+	conn        *net.TCPConn
+	connectTime int64         // Date of connection
+	reader      *bufio.Reader // Reader on the TCP connection
+	writer      *bufio.Writer // Writer on the TCP connection
+	workDir     string        // work dir
 
 	data    []byte // Request data bytes
 	command string // Command received on the connection
@@ -37,14 +38,16 @@ type Context struct {
 }
 
 func NewContext(config *Config, conn *net.TCPConn) *Context {
+	now := time.Now().Unix()
 	p := &Context{
-		config:  config,
-		conn:    conn,
-		writer:  bufio.NewWriter(conn),
-		reader:  bufio.NewReader(conn),
-		workDir: config.Dir,
-		path:    config.Dir,
-		log:     &Logger{},
+		config:      config,
+		conn:        conn,
+		connectTime: now,
+		writer:      bufio.NewWriter(conn),
+		reader:      bufio.NewReader(conn),
+		workDir:     config.Dir,
+		path:        "/",
+		log:         &Logger{},
 	}
 	return p
 }
@@ -53,15 +56,21 @@ func (p *Context) Read() error {
 	if p.reader == nil {
 		return errors.New("reader is nil")
 	}
+	addAliveCheck(p.conn)
 
 	var err error
 	p.data, err = p.reader.ReadBytes('\n')
+
+	fmt.Printf("\n[data: %s, err: %v]", p.data, err)
+
 	if err != nil {
-		switch err.(type) {
+		switch terr := err.(type) {
 		case net.Error:
-
+			if terr.Timeout() {
+				p.conn.SetDeadline(time.Now().Add(time.Minute))
+				p.WriteMessage(421, "timeout")
+			}
 		default:
-
 		}
 
 		return err
@@ -77,6 +86,7 @@ func (p *Context) ParseParam() bool {
 		return false
 	case 1:
 		p.command = string(params[0])
+		p.param = make([]byte, 0, 20)
 	case 2:
 		p.command = string(params[0])
 		p.param = make([]byte, len(params[1]))
@@ -105,12 +115,19 @@ func (p *Context) WriteLine(line []byte) (err error) {
 	if _, err = buf.WriteTo(p.writer); err != nil {
 		p.Error(err)
 	}
+	if err = p.writer.Flush(); err != nil {
+		p.Error(err)
+	}
 	return
 }
 
 func (p *Context) WriteBuffer(buf *bytes.Buffer) (err error) {
 	buf.WriteString("\r\n")
 	if _, err = buf.WriteTo(p.writer); err != nil {
+		p.Error(err)
+		return
+	}
+	if err = p.writer.Flush(); err != nil {
 		p.Error(err)
 	}
 	return
@@ -126,16 +143,10 @@ func (p *Context) WriteMessage(code int, msg string) (err error) {
 	if _, err = buf.WriteTo(p.writer); err != nil {
 		p.Error(err)
 	}
-	return
-}
-
-func (p *Context) ChangeDir(dir string) bool {
-	if _, err := os.Stat(dir); err != nil {
+	if err = p.writer.Flush(); err != nil {
 		p.Error(err)
-		return false
 	}
-	p.path = dir
-	return true
+	return
 }
 
 func (p *Context) GetAbsPath(path []byte) string {
@@ -147,15 +158,25 @@ func (p *Context) TransferFile(path string, write, append bool) error {
 	return nil
 }
 
+func (p *Context) SetDataConn(conn *net.TCPConn) {
+	if p.dataConn != nil {
+		deleteAliveCheck(p.dataConn)
+		p.dataConn.Close()
+		p.dataConn = nil
+	}
+	p.dataConn = conn
+}
+
 func (p *Context) Abort() {
 	var err error
 	if p.dataConn != nil {
-		if err = p.dataConn.Close(); err != nil {
+		deleteAliveCheck(p.dataConn)
+		if err = p.dataConn.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 			p.Error(err)
 		}
 	}
 	if p.listener != nil {
-		if err = p.listener.Close(); err != nil {
+		if err = p.listener.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 			p.Error(err)
 		}
 	}
@@ -165,7 +186,8 @@ func (p *Context) Close() {
 	p.Abort()
 	var err error
 	if p.conn != nil {
-		if err = p.conn.Close(); err != nil {
+		deleteAliveCheck(p.conn)
+		if err = p.conn.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 			p.Error(err)
 		}
 	}

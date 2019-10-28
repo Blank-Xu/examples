@@ -15,6 +15,24 @@ import (
 
 var random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
+func GetLocalIp() string {
+	netInterfaces, _ := net.Interfaces()
+	for i := 0; i < len(netInterfaces); i++ {
+		if netInterfaces[i].Flags&net.FlagUp == 0 {
+			continue
+		}
+		addrs, _ := netInterfaces[i].Addrs()
+		for _, address := range addrs {
+			if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+				if ipnet.IP.To4() != nil {
+					return ipnet.IP.String()
+				}
+			}
+		}
+	}
+	return ""
+}
+
 func GetAddress(host string, port int) (addr string) {
 	var buf bytes.Buffer
 	buf.Grow(len(host) * 2)
@@ -96,7 +114,11 @@ func GetFileList(absPath, path string) (files []os.FileInfo, err error) {
 }
 
 func GetAbsPath(workDir, path string) string {
-	if len(path) == 0 || path[0] == '/' {
+	if workDir == "./" || workDir == "/" {
+		workDir = ""
+	}
+
+	if len(path) == 0 || path == "/" || path == "." {
 		return workDir
 	}
 
@@ -104,8 +126,23 @@ func GetAbsPath(workDir, path string) string {
 		newPath = filepath.Join(workDir, path)
 		l       = len(workDir)
 	)
-	if len(newPath) <= l || newPath[:l] != workDir {
+	if len(newPath) < l || newPath[:l] != workDir {
 		return workDir
 	}
+
 	return newPath
+}
+
+const (
+	dateFormatStatTime      = "Jan _2 15:04"          // LIST date formatting with hour and minute
+	dateFormatStatYear      = "Jan _2  2006"          // LIST date formatting with year
+	dateFormatStatOldSwitch = time.Hour * 24 * 30 * 6 // 6 months ago
+	dateFormatMLSD          = "20060102150405"        // MLSD date formatting
+)
+
+func GetFileModTime(baseTime, modTime time.Time) string {
+	if baseTime.Sub(modTime) > dateFormatStatOldSwitch {
+		return modTime.Format(dateFormatStatYear)
+	}
+	return modTime.Format(dateFormatStatTime)
 }

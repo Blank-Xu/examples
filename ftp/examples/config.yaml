@@ -1,12 +1,12 @@
 server_name: Go FTP Server
 dir: ./
-host: 127.0.0.1
+host:
 port: 21
 max_connections: 100
 deadline_seconds: 30
 read_deadline_seconds: 6000
 write_deadline_seconds: 6000
-keep_alive_period_seconds: 6000
+keep_alive_period_seconds: 10
 pasv_min_port: 3000
 pasv_max_port: 4000
 auto_tls: true

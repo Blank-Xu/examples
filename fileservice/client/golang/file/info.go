@@ -17,7 +17,7 @@ const (
 )
 
 func init() {
-	os.MkdirAll(workDir, 0666)
+	os.MkdirAll(workDir, 0766)
 }
 
 type InfoResponse struct {

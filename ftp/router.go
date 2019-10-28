@@ -30,7 +30,7 @@ var (
 		"PASS": &commandFunc{HandlerFunc: commandPASS, NeedLogin: false, NeedParam: true},
 		"PASV": &commandFunc{HandlerFunc: commandPASV, NeedLogin: true},
 		"PORT": &commandFunc{HandlerFunc: commandPORT, NeedLogin: true, NeedParam: true},
-		"PWD":  &commandFunc{HandlerFunc: commandPWD, NeedLogin: false, NeedParam: true},
+		"PWD":  &commandFunc{HandlerFunc: commandPWD},
 		"QUIT": &commandFunc{HandlerFunc: commandQUIT},
 		"RETR": &commandFunc{HandlerFunc: commandRETR, NeedLogin: true, NeedParam: true},
 		"RNFR": &commandFunc{HandlerFunc: commandRNFR, NeedLogin: true, NeedParam: true},
@@ -44,7 +44,7 @@ var (
 		"USER": &commandFunc{HandlerFunc: commandUSER, NeedLogin: false, NeedParam: true},
 		"XCUP": &commandFunc{HandlerFunc: commandCDUP, NeedLogin: true},
 		"XCWD": &commandFunc{HandlerFunc: commandCWD, NeedLogin: true, NeedParam: true},
-		"XPWD": &commandFunc{HandlerFunc: commandPWD, NeedLogin: false, NeedParam: true},
+		"XPWD": &commandFunc{HandlerFunc: commandPWD},
 		"XRMD": &commandFunc{HandlerFunc: commandRMD, NeedLogin: true, NeedParam: true},
 	}
 

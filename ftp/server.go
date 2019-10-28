@@ -3,7 +3,7 @@ package ftp
 import (
 	"log"
 	"net"
-	"time"
+	"strings"
 )
 
 var DefaultServer, _ = NewServer(&Config{})
@@ -46,7 +46,9 @@ func (p *Server) ListenAndServe() error {
 		return err
 	}
 
-	log.Println("server listening address: " + p.config.addr)
+	log.Println("server listening address: ", p.config.addr)
+
+	startAliveCheck(p.config.KeepAlivePeriodSeconds)
 
 	for {
 		conn, err := p.listener.AcceptTCP()
@@ -79,23 +81,23 @@ func (p *Server) handle(conn *net.TCPConn) {
 	if err = conn.SetKeepAlive(true); err != nil {
 		return
 	}
-	var now = time.Now().Unix()
-	if err = conn.SetDeadline(time.Unix(now+int64(p.config.DeadlineSeconds), 0)); err != nil {
-		return
-	}
-	if err = conn.SetReadDeadline(time.Unix(now+int64(p.config.ReadDeadlineSeconds), 0)); err != nil {
-		return
-	}
-	if err = conn.SetWriteDeadline(time.Unix(now+int64(p.config.WriteDeadlineSeconds), 0)); err != nil {
-		return
-	}
-	if err = conn.SetKeepAlivePeriod(time.Duration(p.config.KeepAlivePeriodSeconds)); err != nil {
-		return
-	}
+	// var now = time.Now().Unix()
+	// if err = conn.SetDeadline(time.Unix(now+int64(p.config.DeadlineSeconds), 0)); err != nil {
+	// 	return
+	// }
+	// if err = conn.SetReadDeadline(time.Unix(now+int64(p.config.ReadDeadlineSeconds), 0)); err != nil {
+	// 	return
+	// }
+	// if err = conn.SetWriteDeadline(time.Unix(now+int64(p.config.WriteDeadlineSeconds), 0)); err != nil {
+	// 	return
+	// }
+	// if err = conn.SetKeepAlivePeriod(time.Duration(p.config.KeepAlivePeriodSeconds)); err != nil {
+	// 	return
+	// }
 
 	ctx = NewContext(p.config, conn)
 	if err = ctx.WriteMessage(220, p.config.ServerName); err != nil {
-		ctx.WriteMessage(550, "refuse")
+		ctx.WriteMessage(550, "refused")
 		return
 	}
 
@@ -136,7 +138,9 @@ func Close() error {
 
 func (p *Server) Close() error {
 	if p.listener != nil {
-		return p.listener.Close()
+		if err := p.listener.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
+			return err
+		}
 	}
 	return nil
 }

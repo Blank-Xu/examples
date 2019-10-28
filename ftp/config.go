@@ -42,11 +42,16 @@ func (p *Config) checkAll() (err error) {
 		p.ServerName = "FTP Server"
 	}
 	if len(p.Dir) == 0 {
-		p.Dir = "./"
-	} else if err = os.Mkdir(p.Dir, 0666); err != nil && !os.IsExist(err) {
+		if p.Dir, err = os.Getwd(); err != nil {
+			return err
+		}
+	} else if err = os.Mkdir(p.Dir, 0766); err != nil && !os.IsExist(err) {
 		return
 	}
 
+	// if len(p.Host) == 0 {
+	// 	p.Host = GetLocalIp()
+	// }
 	if p.Port == 0 {
 		p.Port = 21
 	}
@@ -92,7 +97,7 @@ func (p *Config) checkAccount() error {
 			}
 
 			path := GetAbsPath(p.Dir, account.Dir)
-			if err := os.Mkdir(path, 0666); err != nil && !os.IsExist(err) {
+			if err := os.MkdirAll(path, 0766); err != nil && !os.IsExist(err) {
 				return err
 			}
 
