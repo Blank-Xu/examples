@@ -30,7 +30,7 @@ var (
 		"PASS": &commandFunc{HandlerFunc: commandPASS, NeedLogin: false, NeedParam: true},
 		"PASV": &commandFunc{HandlerFunc: commandPASV, NeedLogin: true},
 		"PORT": &commandFunc{HandlerFunc: commandPORT, NeedLogin: true, NeedParam: true},
-		"PWD":  &commandFunc{HandlerFunc: commandPWD, NeedLogin: true},
+		"PWD":  &commandFunc{HandlerFunc: commandPWD, NeedLogin: false, NeedParam: true},
 		"QUIT": &commandFunc{HandlerFunc: commandQUIT},
 		"RETR": &commandFunc{HandlerFunc: commandRETR, NeedLogin: true, NeedParam: true},
 		"RNFR": &commandFunc{HandlerFunc: commandRNFR, NeedLogin: true, NeedParam: true},
@@ -42,10 +42,10 @@ var (
 		"SYST": &commandFunc{HandlerFunc: commandSYST, NeedLogin: true},
 		"TYPE": &commandFunc{HandlerFunc: commandTYPE, NeedLogin: true},
 		"USER": &commandFunc{HandlerFunc: commandUSER, NeedLogin: false, NeedParam: true},
-		"XCUP": nil,
-		"XCWD": nil,
-		"XPWD": nil,
-		"XRMD": nil,
+		"XCUP": &commandFunc{HandlerFunc: commandCDUP, NeedLogin: true},
+		"XCWD": &commandFunc{HandlerFunc: commandCWD, NeedLogin: true, NeedParam: true},
+		"XPWD": &commandFunc{HandlerFunc: commandPWD, NeedLogin: false, NeedParam: true},
+		"XRMD": &commandFunc{HandlerFunc: commandRMD, NeedLogin: true, NeedParam: true},
 	}
 
 	checkLogin = func(handler HandlerFunc) HandlerFunc {

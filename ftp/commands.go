@@ -8,10 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -221,12 +219,6 @@ func commandOPTS(ctx *Context) {
 		return
 	}
 	ctx.WriteMessage(500, "Command not found")
-}
-
-// commandUSER responds 'USER' command
-func commandUSER(ctx *Context) {
-	ctx.user = string(ctx.param)
-	ctx.WriteMessage(331, "OK")
 }
 
 // commandPASS responds 'PASS' command
@@ -446,10 +438,19 @@ func commandSYST(ctx *Context) {
 
 // commandTYPE responds 'TYPE' command
 func commandTYPE(ctx *Context) {
-
+	param := string(ctx.param)
+	switch param {
+	case "A", "a":
+		ctx.WriteMessage(200, "Type set to ASCII")
+	case "I", "i":
+		ctx.WriteMessage(200, "Type set to binary")
+	default:
+		ctx.WriteMessage(500, "Invalid type")
+	}
 }
 
-// commandTYPE responds 'TYPE' command
-func commandTYPE(ctx *Context) {
-
+// commandUSER responds 'USER' command
+func commandUSER(ctx *Context) {
+	ctx.user = string(ctx.param)
+	ctx.WriteMessage(331, "OK")
 }

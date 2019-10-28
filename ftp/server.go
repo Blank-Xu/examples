@@ -94,7 +94,10 @@ func (p *Server) handle(conn *net.TCPConn) {
 	}
 
 	ctx = NewContext(p.config, conn)
-	ctx.WriteMessage(220, p.config.ServerName)
+	if err = ctx.WriteMessage(220, p.config.ServerName); err != nil {
+		ctx.WriteMessage(550, "refuse")
+		return
+	}
 
 	for {
 		if err := ctx.Read(); err != nil {

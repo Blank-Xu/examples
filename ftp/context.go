@@ -57,10 +57,9 @@ func (p *Context) Read() error {
 	var err error
 	p.data, err = p.reader.ReadBytes('\n')
 	if err != nil {
-
 		switch err.(type) {
 		case net.Error:
-			// if err.
+
 		default:
 
 		}
