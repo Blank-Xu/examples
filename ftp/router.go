@@ -51,7 +51,7 @@ var (
 	checkLogin = func(handler HandlerFunc) HandlerFunc {
 		return func(ctx *Context) {
 			if len(ctx.pass) == 0 {
-				ctx.WriteMessage(530, "not logged in")
+				ctx.WriteMessage(530, "Action aborted, should login")
 				return
 			}
 
@@ -62,7 +62,7 @@ var (
 	checkParam = func(handler HandlerFunc) HandlerFunc {
 		return func(ctx *Context) {
 			if len(ctx.param) == 0 {
-				ctx.WriteMessage(553, "action aborted, required param missing")
+				ctx.WriteMessage(553, "Action aborted, required param missing")
 				return
 			}
 

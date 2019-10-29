@@ -15,6 +15,9 @@ accounts:
   - username: admin
     password: admin
     dir: ./admin
+  - username: fclairamb
+    password: floflo
+    dir: ./admin
   - username: test
     password: test
     dir: ./test

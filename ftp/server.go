@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 )
 
 var DefaultServer, _ = NewServer(&Config{})
@@ -13,14 +14,14 @@ type HandlerFunc func(*Context)
 type Server struct {
 	config   *Config
 	listener *net.TCPListener
+	deadline time.Duration
 }
 
 func NewServer(cfg *Config) (*Server, error) {
 	if cfg == nil {
 		cfg = &Config{}
 	}
-
-	return &Server{config: cfg}, cfg.checkAll()
+	return &Server{config: cfg}, cfg.Check()
 }
 
 // func SetConfig(cfg Config)  {
@@ -28,7 +29,7 @@ func NewServer(cfg *Config) (*Server, error) {
 // }
 //
 // func (p *Server) SetConfig(cfg Config) {
-// 	cfg.checkAll()
+// 	cfg.Check()
 // 	p.config = cfg
 // }
 
@@ -45,10 +46,9 @@ func (p *Server) ListenAndServe() error {
 	if p.listener, err = net.ListenTCP("tcp", addr); err != nil {
 		return err
 	}
+	p.deadline = time.Second * time.Duration(p.config.DeadlineSeconds)
 
 	log.Println("server listening address: ", p.config.addr)
-
-	startAliveCheck(p.config.KeepAlivePeriodSeconds)
 
 	for {
 		conn, err := p.listener.AcceptTCP()
@@ -78,23 +78,6 @@ func (p *Server) handle(conn *net.TCPConn) {
 	}()
 
 	var err error
-	if err = conn.SetKeepAlive(true); err != nil {
-		return
-	}
-	// var now = time.Now().Unix()
-	// if err = conn.SetDeadline(time.Unix(now+int64(p.config.DeadlineSeconds), 0)); err != nil {
-	// 	return
-	// }
-	// if err = conn.SetReadDeadline(time.Unix(now+int64(p.config.ReadDeadlineSeconds), 0)); err != nil {
-	// 	return
-	// }
-	// if err = conn.SetWriteDeadline(time.Unix(now+int64(p.config.WriteDeadlineSeconds), 0)); err != nil {
-	// 	return
-	// }
-	// if err = conn.SetKeepAlivePeriod(time.Duration(p.config.KeepAlivePeriodSeconds)); err != nil {
-	// 	return
-	// }
-
 	ctx = NewContext(p.config, conn)
 	if err = ctx.WriteMessage(220, p.config.ServerName); err != nil {
 		ctx.WriteMessage(550, "refused")
@@ -102,7 +85,11 @@ func (p *Server) handle(conn *net.TCPConn) {
 	}
 
 	for {
-		if err := ctx.Read(); err != nil {
+		if err = conn.SetDeadline(time.Now().Add(p.deadline)); err != nil {
+			log.Println(err)
+		}
+
+		if err = ctx.Read(); err != nil {
 			log.Println(err)
 			break
 		}

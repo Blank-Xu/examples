@@ -26,6 +26,7 @@ type Config struct {
 	TlsKey                 string     `json:"tls_key" xml:"tls_key" yaml:"tls_key" toml:"tls_key"`
 	Accounts               []*Account `json:"accounts" xml:"accounts" yaml:"accounts" toml:"accounts"`
 
+	externalIP string
 	addr       string
 	tlscfg     *tls.Config
 	accountMap map[string]*Account
@@ -37,7 +38,7 @@ type Account struct {
 	Dir      string `json:"dir" xml:"dir" yaml:"dir" toml:"dir"`
 }
 
-func (p *Config) checkAll() (err error) {
+func (p *Config) Check() (err error) {
 	if len(p.ServerName) == 0 {
 		p.ServerName = "FTP Server"
 	}
@@ -56,13 +57,18 @@ func (p *Config) checkAll() (err error) {
 		p.Port = 21
 	}
 	if p.DeadlineSeconds == 0 {
-		p.DeadlineSeconds = 30
+		p.DeadlineSeconds = 900
 	}
+
+	if p.externalIP, err = GetExternalIP(); err != nil {
+		return err
+	}
+	p.externalIP = strings.ReplaceAll(p.externalIP, ",", ".")
 
 	p.addr = GetAddress(p.Host, int(p.Port))
 
 	if p.PasvMaxPort < p.PasvMinPort || p.PasvMaxPort > 65534 {
-		return errors.New("params invalid, please checkAll pasv port")
+		return errors.New("params invalid, please check pasv port")
 	}
 
 	if err = p.checkTLS(); err != nil {
@@ -92,7 +98,7 @@ func (p *Config) checkAccount() error {
 	for _, account := range p.Accounts {
 		if len(account.Username) > 0 && len(account.Password) > 0 {
 			if strings.Contains(account.Dir, "..") {
-				return fmt.Errorf("params invalid, please checkAll account[%s] dir[%s] set, it must under the work dir[%s]",
+				return fmt.Errorf("params invalid, please check account[%s] dir[%s] set, it must under the work dir[%s]",
 					account.Username, account.Dir, p.Dir)
 			}
 

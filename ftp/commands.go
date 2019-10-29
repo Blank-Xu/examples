@@ -228,6 +228,11 @@ func commandOPTS(ctx *Context) {
 
 // commandPASS responds 'PASS' command
 func commandPASS(ctx *Context) {
+	if len(ctx.user) == 0 {
+		ctx.WriteMessage(503, "User required")
+		return
+	}
+
 	param := string(ctx.param)
 	if ok := ctx.Authenticate(param); ok {
 		ctx.pass = param
@@ -265,7 +270,7 @@ func commandPASV(ctx *Context) {
 	var buf bytes.Buffer
 	buf.Grow(256)
 	buf.WriteString("227 Entering Passive Mode (")
-	buf.WriteString(strings.ReplaceAll(ctx.config.Host, ",", "."))
+	buf.WriteString(ctx.config.externalIP)
 	buf.WriteByte(',')
 	buf.WriteString(strconv.Itoa(p1))
 	buf.WriteByte(',')
@@ -321,8 +326,9 @@ func commandPWD(ctx *Context) {
 }
 
 // commandQUIT for 'QUIT' command
+// http://cr.yp.to/ftp/quit.html
 func commandQUIT(ctx *Context) {
-	ctx.WriteMessage(221, "Goodbye.")
+	ctx.WriteMessage(221, "Bye.")
 	ctx.Close()
 }
 
@@ -448,6 +454,7 @@ func commandTYPE(ctx *Context) {
 }
 
 // commandUSER responds 'USER' command
+// http://cr.yp.to/ftp/user.html
 func commandUSER(ctx *Context) {
 	ctx.user = string(ctx.param)
 	ctx.WriteMessage(331, "OK")

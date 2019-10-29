@@ -29,7 +29,6 @@ type Context struct {
 	user     string // Authenticated user
 	pass     string //
 
-	abor chan struct{}
 	rnfr string // Rename from command path
 	rest []byte // Restart point
 
@@ -56,7 +55,6 @@ func (p *Context) Read() error {
 	if p.reader == nil {
 		return errors.New("reader is nil")
 	}
-	addAliveCheck(p.conn)
 
 	var err error
 	p.data, err = p.reader.ReadBytes('\n')
@@ -160,7 +158,6 @@ func (p *Context) TransferFile(path string, write, append bool) error {
 
 func (p *Context) SetDataConn(conn *net.TCPConn) {
 	if p.dataConn != nil {
-		deleteAliveCheck(p.dataConn)
 		p.dataConn.Close()
 		p.dataConn = nil
 	}
@@ -170,7 +167,6 @@ func (p *Context) SetDataConn(conn *net.TCPConn) {
 func (p *Context) Abort() {
 	var err error
 	if p.dataConn != nil {
-		deleteAliveCheck(p.dataConn)
 		if err = p.dataConn.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 			p.Error(err)
 		}
@@ -186,7 +182,6 @@ func (p *Context) Close() {
 	p.Abort()
 	var err error
 	if p.conn != nil {
-		deleteAliveCheck(p.conn)
 		if err = p.conn.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 			p.Error(err)
 		}

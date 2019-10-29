@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var _serverTCPConnMap sync.Map
+var _aliveTCPConnMap sync.Map
 
 func startAliveCheck(interval uint32) {
 	if interval < 10 {
@@ -18,16 +18,14 @@ func startAliveCheck(interval uint32) {
 	aliveFunc := func() {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Println("startAliveCheck failed, panic:", err)
+				log.Println("AliveCheck failed, panic:", err)
 				aliveChan <- true
 			}
 		}()
 
 		for {
 			now := time.Now().Unix()
-			log.Println("alive time:", now)
-
-			_serverTCPConnMap.Range(func(key, value interface{}) bool {
+			_aliveTCPConnMap.Range(func(key, value interface{}) bool {
 				if value.(int64) <= now-int64(interval) {
 					conn, ok := key.(*net.TCPConn)
 					if ok && conn != nil {
@@ -53,9 +51,9 @@ func startAliveCheck(interval uint32) {
 }
 
 func addAliveCheck(conn *net.TCPConn) {
-	_serverTCPConnMap.LoadOrStore(conn, time.Now().Unix())
+	_aliveTCPConnMap.LoadOrStore(conn, time.Now().Unix())
 }
 
 func deleteAliveCheck(conn *net.TCPConn) {
-	_serverTCPConnMap.Delete(conn)
+	_aliveTCPConnMap.Delete(conn)
 }

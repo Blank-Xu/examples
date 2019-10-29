@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,6 +15,20 @@ import (
 )
 
 var random = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+func GetExternalIP() (string, error) {
+	resp, err := http.Get("http://checkip.amazonaws.com")
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var buf bytes.Buffer
+	if _, err = buf.ReadFrom(resp.Body); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(buf.String()), nil
+}
 
 func GetLocalIp() string {
 	netInterfaces, _ := net.Interfaces()
@@ -31,6 +46,25 @@ func GetLocalIp() string {
 		}
 	}
 	return ""
+}
+
+func IsPublicIP(IP net.IP) bool {
+	if IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
+		return false
+	}
+	if ip4 := IP.To4(); ip4 != nil {
+		switch {
+		case ip4[0] == 10:
+			return false
+		case ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31:
+			return false
+		case ip4[0] == 192 && ip4[1] == 168:
+			return false
+		default:
+			return true
+		}
+	}
+	return false
 }
 
 func GetAddress(host string, port int) (addr string) {
@@ -107,7 +141,7 @@ func GetFileList(absPath, path string) (files []os.FileInfo, err error) {
 			return
 		}
 		if path == "/" {
-			files = append(files, NewFileInfo("virtual", 4096, now))
+			files = append(files, NewDirInfo("virtual", now))
 		}
 	}
 	return
