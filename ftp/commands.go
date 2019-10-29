@@ -132,6 +132,34 @@ func commandLIST(ctx *Context) {
 		return
 	}
 
+	// TODO: client can't get info
+	for _, file := range files {
+		s := fmt.Sprintf("%s 1 ftp ftp %12d %s %s\r\n",
+			file.Mode(),
+			file.Size(),
+			GetFileModTime(time.Now(), file.ModTime()),
+			file.Name())
+		fmt.Println(s)
+
+		ctx.writer.WriteString(s)
+		ctx.writer.Flush()
+
+		// _, err = fmt.Fprintf(ctx.writer,
+		// 	"%s 1 ftp ftp %12d %s %s\r\n",
+		// 	file.Mode(),
+		// 	file.Size(),
+		// 	GetFileModTime(time.Now(), file.ModTime()),
+		// 	file.Name())
+		// if err != nil {
+		// 	ctx.Error(err)
+		// 	ctx.WriteMessage(550, "Transfer failed.")
+		// 	return
+		// }
+	}
+	// ctx.WriteMessage(226, "Transfer complete.")
+
+	return
+
 	var (
 		now = time.Now()
 		buf bytes.Buffer

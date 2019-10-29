@@ -105,20 +105,6 @@ func (p *Context) Authenticate(pass string) bool {
 	return false
 }
 
-func (p *Context) WriteLine(line []byte) (err error) {
-	var buf bytes.Buffer
-	buf.Grow(len(line) + 10)
-	buf.Write(line)
-	buf.WriteString("\r\n")
-	if _, err = buf.WriteTo(p.writer); err != nil {
-		p.Error(err)
-	}
-	if err = p.writer.Flush(); err != nil {
-		p.Error(err)
-	}
-	return
-}
-
 func (p *Context) WriteBuffer(buf *bytes.Buffer) (err error) {
 	buf.WriteString("\r\n")
 	if _, err = buf.WriteTo(p.writer); err != nil {
