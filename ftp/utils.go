@@ -2,6 +2,7 @@ package ftp
 
 import (
 	"bytes"
+	"crypto/tls"
 	"errors"
 	"io/ioutil"
 	"math/rand"
@@ -14,28 +15,43 @@ import (
 	"time"
 )
 
-var random = rand.New(rand.NewSource(time.Now().UnixNano()))
+var (
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	defaultHttpClient = http.Client{
+		Timeout: time.Second * 30,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+)
 
 func GetExternalIP() (string, error) {
-	resp, err := http.Get("http://checkip.amazonaws.com")
+	resp, err := defaultHttpClient.Get("http://checkip.amazonaws.com")
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	var buf bytes.Buffer
+	buf.Grow(64)
 	if _, err = buf.ReadFrom(resp.Body); err != nil {
 		return "", err
 	}
+
 	return strings.TrimSpace(buf.String()), nil
 }
 
 func GetLocalIp() string {
 	netInterfaces, _ := net.Interfaces()
+
 	for i := 0; i < len(netInterfaces); i++ {
 		if netInterfaces[i].Flags&net.FlagUp == 0 {
 			continue
 		}
+
 		addrs, _ := netInterfaces[i].Addrs()
 		for _, address := range addrs {
 			if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
@@ -45,6 +61,7 @@ func GetLocalIp() string {
 			}
 		}
 	}
+
 	return ""
 }
 
@@ -52,6 +69,7 @@ func IsPublicIP(IP net.IP) bool {
 	if IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
 		return false
 	}
+
 	if ip4 := IP.To4(); ip4 != nil {
 		switch {
 		case ip4[0] == 10:
@@ -64,12 +82,14 @@ func IsPublicIP(IP net.IP) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
 func GetAddress(host string, port int) (addr string) {
 	var buf bytes.Buffer
 	buf.Grow(len(host) * 2)
+
 	if strings.IndexByte(host, ':') > -1 {
 		buf.WriteByte('[')
 		buf.WriteString(host)
@@ -77,15 +97,17 @@ func GetAddress(host string, port int) (addr string) {
 	} else {
 		buf.WriteString(host)
 	}
+
 	if port > 0 {
 		buf.WriteByte(':')
 		buf.WriteString(strconv.Itoa(port))
 	}
+
 	return buf.String()
 }
 
 func GetRandomPort(minPort, maxPort int) (port int) {
-	var n = maxPort - minPort
+	n := maxPort - minPort
 	if n == 0 {
 		if minPort > 0 {
 			port = minPort
@@ -127,7 +149,8 @@ func NewTcpListener(host string, port int) (*net.TCPListener, error) {
 }
 
 func GetFileList(absPath, path string) (files []os.FileInfo, err error) {
-	var now = time.Now().UTC()
+	now := time.Now().UTC()
+
 	switch path {
 	case "/debug":
 		return
@@ -156,10 +179,8 @@ func GetAbsPath(workDir, path string) string {
 		return workDir
 	}
 
-	var (
-		newPath = filepath.Join(workDir, path)
-		l       = len(workDir)
-	)
+	newPath := filepath.Join(workDir, path)
+	l := len(workDir)
 	if len(newPath) < l || newPath[:l] != workDir {
 		return workDir
 	}
@@ -178,5 +199,6 @@ func GetFileModTime(baseTime, modTime time.Time) string {
 	if baseTime.Sub(modTime) > dateFormatStatOldSwitch {
 		return modTime.Format(dateFormatStatYear)
 	}
+
 	return modTime.Format(dateFormatStatTime)
 }

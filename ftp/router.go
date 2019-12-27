@@ -72,14 +72,16 @@ var (
 )
 
 func init() {
-	var m = make(map[string]*commandFunc, len(routerMap))
+	m := make(map[string]*commandFunc, len(routerMap))
 	for command, fn := range routerMap {
 		if fn == nil {
 			continue
 		}
+
 		if fn.NeedLogin {
 			fn.HandlerFunc = checkLogin(fn.HandlerFunc)
 		}
+
 		if fn.NeedParam {
 			fn.HandlerFunc = checkParam(fn.HandlerFunc)
 		}
@@ -89,5 +91,6 @@ func init() {
 		cmd := strings.ToLower(command)
 		m[cmd] = fn
 	}
+
 	routerMap = m
 }

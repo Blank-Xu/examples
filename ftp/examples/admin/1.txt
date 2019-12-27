@@ -1,0 +1,5 @@
+drw-rw-rw- 1 ftp ftp         4096 Oct 29 09:17 virtual
+
+-rw-r--r-- 1 ftp ftp            0 Oct 29 16:59 1.txt
+
+-rw-r--r-- 1 ftp ftp          109 Oct 29 17:21 1.txt

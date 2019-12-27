@@ -51,12 +51,11 @@ func NewContext(config *Config, conn *net.TCPConn) *Context {
 	return p
 }
 
-func (p *Context) Read() error {
+func (p *Context) Read() (err error) {
 	if p.reader == nil {
 		return errors.New("reader is nil")
 	}
 
-	var err error
 	p.data, err = p.reader.ReadBytes('\n')
 
 	fmt.Printf("\n[data: %s, err: %v]", p.data, err)
@@ -71,9 +70,10 @@ func (p *Context) Read() error {
 		default:
 		}
 
-		return err
+		return
 	}
-	return nil
+
+	return
 }
 
 func (p *Context) ParseParam() bool {
@@ -151,14 +151,14 @@ func (p *Context) SetDataConn(conn *net.TCPConn) {
 }
 
 func (p *Context) Abort() {
-	var err error
 	if p.dataConn != nil {
-		if err = p.dataConn.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
+		if err := p.dataConn.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 			p.Error(err)
 		}
 	}
+
 	if p.listener != nil {
-		if err = p.listener.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
+		if err := p.listener.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 			p.Error(err)
 		}
 	}
@@ -166,9 +166,9 @@ func (p *Context) Abort() {
 
 func (p *Context) Close() {
 	p.Abort()
-	var err error
+
 	if p.conn != nil {
-		if err = p.conn.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
+		if err := p.conn.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 			p.Error(err)
 		}
 	}

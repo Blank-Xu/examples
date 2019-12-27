@@ -113,7 +113,7 @@ const _msgFEAT = "211-Features supported:\r\n" +
 
 // commandFEAT responds 'FEAT' command
 func commandFEAT(ctx *Context) {
-	var buf = bytes.NewBufferString(_msgFEAT)
+	buf := bytes.NewBufferString(_msgFEAT)
 	ctx.WriteBuffer(buf)
 }
 
@@ -160,11 +160,10 @@ func commandLIST(ctx *Context) {
 
 	return
 
-	var (
-		now = time.Now()
-		buf bytes.Buffer
-	)
+	var buf bytes.Buffer
 	buf.Grow(1024)
+
+	now := time.Now().UTC()
 	for _, file := range files {
 		buf.WriteString(file.Mode().String())
 		buf.WriteString(" 1 owner group ")
@@ -329,7 +328,7 @@ func commandPORT(ctx *Context) {
 	port := p1*256 + p2
 
 	var buf bytes.Buffer
-	buf.Grow(len(param))
+	buf.Grow(len(param) + 5)
 	buf.WriteString(params[0])
 	buf.WriteByte('.')
 	buf.WriteString(params[1])
