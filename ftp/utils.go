@@ -36,6 +36,7 @@ func GetExternalIP() (string, error) {
 	defer resp.Body.Close()
 
 	var buf bytes.Buffer
+
 	buf.Grow(64)
 	if _, err = buf.ReadFrom(resp.Body); err != nil {
 		return "", err
@@ -88,8 +89,8 @@ func IsPublicIP(IP net.IP) bool {
 
 func GetAddress(host string, port int) (addr string) {
 	var buf bytes.Buffer
-	buf.Grow(len(host) * 2)
 
+	buf.Grow(len(host) * 2)
 	if strings.IndexByte(host, ':') > -1 {
 		buf.WriteByte('[')
 		buf.WriteString(host)
@@ -108,6 +109,7 @@ func GetAddress(host string, port int) (addr string) {
 
 func GetRandomPort(minPort, maxPort int) (port int) {
 	n := maxPort - minPort
+
 	if n == 0 {
 		if minPort > 0 {
 			port = minPort
@@ -115,11 +117,13 @@ func GetRandomPort(minPort, maxPort int) (port int) {
 	} else if n > 0 {
 		port = minPort + random.Intn(n+1)
 	}
+
 	return
 }
 
 func NewActiveTCPConn(host string, port int) (*net.TCPConn, error) {
 	addr := GetAddress(host, port)
+
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -140,6 +144,7 @@ func NewPassiveTCPListener(host string, minPort, maxPort int) (*net.TCPListener,
 
 func NewTcpListener(host string, port int) (*net.TCPListener, error) {
 	addr := GetAddress(host, port)
+
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -180,6 +185,7 @@ func GetAbsPath(workDir, path string) string {
 	}
 
 	newPath := filepath.Join(workDir, path)
+
 	l := len(workDir)
 	if len(newPath) < l || newPath[:l] != workDir {
 		return workDir

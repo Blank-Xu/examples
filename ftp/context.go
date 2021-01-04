@@ -14,7 +14,7 @@ import (
 type Context struct {
 	config      *Config
 	conn        *net.TCPConn
-	connectTime int64         // Date of connection
+	connectTime time.Time     // Date of connection
 	reader      *bufio.Reader // Reader on the TCP connection
 	writer      *bufio.Writer // Writer on the TCP connection
 	workDir     string        // work dir
@@ -37,18 +37,16 @@ type Context struct {
 }
 
 func NewContext(config *Config, conn *net.TCPConn) *Context {
-	now := time.Now().Unix()
-	p := &Context{
+	return &Context{
 		config:      config,
 		conn:        conn,
-		connectTime: now,
+		connectTime: time.Now().UTC(),
 		writer:      bufio.NewWriter(conn),
 		reader:      bufio.NewReader(conn),
 		workDir:     config.Dir,
 		path:        "/",
 		log:         &Logger{},
 	}
-	return p
 }
 
 func (p *Context) Read() (err error) {
@@ -79,6 +77,7 @@ func (p *Context) Read() (err error) {
 func (p *Context) ParseParam() bool {
 	p.data = bytes.Trim(p.data, "\r\n")
 	params := bytes.SplitN(p.data, []byte{' '}, 2)
+
 	switch len(params) {
 	case 0:
 		return false
@@ -90,6 +89,7 @@ func (p *Context) ParseParam() bool {
 		p.param = make([]byte, len(params[1]))
 		copy(p.param, params[1])
 	}
+
 	return true
 }
 
@@ -102,6 +102,7 @@ func (p *Context) Authenticate(pass string) bool {
 		p.workDir = GetAbsPath(p.workDir, account.Dir)
 		return true
 	}
+
 	return false
 }
 
@@ -114,11 +115,13 @@ func (p *Context) WriteBuffer(buf *bytes.Buffer) (err error) {
 	if err = p.writer.Flush(); err != nil {
 		p.Error(err)
 	}
+
 	return
 }
 
 func (p *Context) WriteMessage(code int, msg string) (err error) {
 	var buf bytes.Buffer
+
 	buf.Grow(len(msg) + 10)
 	buf.WriteString(strconv.Itoa(code))
 	buf.WriteByte(' ')
@@ -130,6 +133,7 @@ func (p *Context) WriteMessage(code int, msg string) (err error) {
 	if err = p.writer.Flush(); err != nil {
 		p.Error(err)
 	}
+
 	return
 }
 
@@ -175,5 +179,7 @@ func (p *Context) Close() {
 }
 
 func (p *Context) Error(err error) {
-	p.errs = append(p.errs, err)
+	if err != nil {
+		p.errs = append(p.errs, err)
+	}
 }

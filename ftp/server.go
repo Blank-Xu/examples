@@ -21,6 +21,7 @@ func NewServer(cfg *Config) (*Server, error) {
 	if cfg == nil {
 		cfg = &Config{}
 	}
+
 	return &Server{config: cfg}, cfg.Check()
 }
 
@@ -78,6 +79,7 @@ func (p *Server) handle(conn *net.TCPConn) {
 	}()
 
 	var err error
+
 	ctx = NewContext(p.config, conn)
 	if err = ctx.WriteMessage(220, p.config.ServerName); err != nil {
 		ctx.WriteMessage(550, "refused")
@@ -129,5 +131,6 @@ func (p *Server) Close() error {
 			return err
 		}
 	}
+
 	return nil
 }

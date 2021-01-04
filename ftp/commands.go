@@ -35,33 +35,39 @@ func commandCDUP(ctx *Context) {
 // commandCWD responds 'CWD' command
 func commandCWD(ctx *Context) {
 	absPath := ctx.GetAbsPath(ctx.param)
+
 	if _, err := os.Stat(absPath); err != nil {
 		ctx.Error(err)
 		ctx.WriteMessage(550, "Action not taken")
 		return
 	}
+
 	ctx.path = string(ctx.param)
+
 	ctx.WriteMessage(250, "Directory changed to "+absPath)
 }
 
 // commandDELE responds 'DELE' command
 func commandDELE(ctx *Context) {
 	absPath := ctx.GetAbsPath(ctx.param)
+
 	if err := os.RemoveAll(absPath); err != nil {
 		ctx.Error(err)
 		ctx.WriteMessage(550, "Action not taken")
 		return
 	}
+
 	ctx.WriteMessage(250, "File deleted")
 }
 
 // commandEPRT responds 'EPRT' command
 func commandEPRT(ctx *Context) {
 	parts := bytes.Split(ctx.param, []byte{ctx.param[0]})
-	if len(parts) < 3 {
+	if len(parts) < 4 {
 		ctx.WriteMessage(553, "action aborted, required param missing")
 		return
 	}
+
 	addressFamily := string(parts[1])
 	if addressFamily != "1" && addressFamily != "2" {
 		ctx.WriteMessage(522, "Network protocol not supported, use (1,2)")
@@ -93,6 +99,7 @@ func commandEPSV(ctx *Context) {
 		ctx.WriteMessage(425, "Data connection failed")
 		return
 	}
+
 	if ctx.listener != nil {
 		ctx.listener.Close()
 		ctx.listener = nil
@@ -192,6 +199,7 @@ func commandNLST(ctx *Context) {
 	}
 
 	absPath := ctx.GetAbsPath(ctx.param)
+
 	files, err := filepath.Glob(absPath)
 	if err != nil {
 		ctx.WriteMessage(450, "Could not STAT: "+err.Error())
@@ -199,32 +207,38 @@ func commandNLST(ctx *Context) {
 	}
 
 	var buf bytes.Buffer
+
 	buf.Grow(1024)
 	for _, file := range files {
 		buf.WriteString(file)
 		buf.WriteString("\r\n")
 	}
+
 	ctx.WriteBuffer(&buf)
 }
 
 // commandMDTM responds 'MDTM' command
 func commandMDTM(ctx *Context) {
 	absPath := ctx.GetAbsPath(ctx.param)
+
 	fileInfo, err := os.Stat(absPath)
 	if err != nil {
 		ctx.WriteMessage(450, "File not available")
 		return
 	}
+
 	ctx.WriteMessage(213, fileInfo.ModTime().Format("%Y%m%d%H%M%S"))
 }
 
 // commandMKD responds 'MKD' command
 func commandMKD(ctx *Context) {
 	absPath := ctx.GetAbsPath(ctx.param)
+
 	if err := os.MkdirAll(absPath, 0766); err != nil {
 		ctx.WriteMessage(550, "Action not taken")
 		return
 	}
+
 	ctx.WriteMessage(257, "Directory created")
 }
 
@@ -235,6 +249,7 @@ func commandMODE(ctx *Context) {
 		ctx.WriteMessage(200, "OK")
 		return
 	}
+
 	ctx.WriteMessage(504, "MODE is an obsolete command")
 }
 
@@ -250,12 +265,13 @@ func commandOPTS(ctx *Context) {
 		ctx.WriteMessage(200, "OK")
 		return
 	}
+
 	ctx.WriteMessage(500, "Command not found")
 }
 
 // commandPASS responds 'PASS' command
 func commandPASS(ctx *Context) {
-	if len(ctx.user) == 0 {
+	if ctx.user == "" {
 		ctx.WriteMessage(503, "User required")
 		return
 	}
@@ -269,6 +285,7 @@ func commandPASS(ctx *Context) {
 
 	ctx.WriteMessage(530, "Incorrect password")
 	ctx.command = "QUIT"
+
 	commandQUIT(ctx)
 }
 
@@ -295,6 +312,7 @@ func commandPASV(ctx *Context) {
 	p2 := addr.Port - (p1 * 256)
 
 	var buf bytes.Buffer
+
 	buf.Grow(256)
 	buf.WriteString("227 Entering Passive Mode (")
 	buf.WriteString(ctx.config.externalIP)
@@ -315,6 +333,7 @@ func commandPORT(ctx *Context) {
 		ctx.WriteMessage(500, "params invalid")
 		return
 	}
+
 	p1, err := strconv.Atoi(params[4])
 	if err != nil {
 		ctx.WriteMessage(500, "params invalid")
@@ -328,6 +347,7 @@ func commandPORT(ctx *Context) {
 	port := p1*256 + p2
 
 	var buf bytes.Buffer
+
 	buf.Grow(len(param) + 5)
 	buf.WriteString(params[0])
 	buf.WriteByte('.')
@@ -395,12 +415,13 @@ func commandRNFR(ctx *Context) {
 		return
 	}
 	ctx.rnfr = absPath
+
 	ctx.WriteMessage(200, "Sure, give me a target")
 }
 
 // commandRNTO responds 'RNTO' command
 func commandRNTO(ctx *Context) {
-	if len(ctx.rnfr) == 0 {
+	if ctx.rnfr == "" {
 		ctx.WriteMessage(503, "Bad sequence of commands: use RNFR first.")
 		return
 	}
@@ -412,6 +433,7 @@ func commandRNTO(ctx *Context) {
 	}
 
 	ctx.rnfr = ""
+
 	ctx.WriteMessage(250, "File renamed")
 }
 
@@ -422,6 +444,7 @@ func commandRMD(ctx *Context) {
 		ctx.WriteMessage(550, "Action not taken")
 		return
 	}
+
 	ctx.WriteMessage(250, "Directory deleted")
 }
 
@@ -433,6 +456,7 @@ func commandSIZE(ctx *Context) {
 		ctx.WriteMessage(450, "file not available")
 		return
 	}
+
 	ctx.WriteMessage(213, strconv.FormatInt(file.Size(), 10))
 }
 
@@ -449,6 +473,7 @@ func commandSTOR(ctx *Context) {
 		ctx.WriteMessage(550, "Transfer failed, err: "+err.Error())
 		return
 	}
+
 	ctx.WriteMessage(226, "Transfer complete.")
 }
 
@@ -459,6 +484,7 @@ func commandSTRU(ctx *Context) {
 		ctx.WriteMessage(200, "OK")
 		return
 	}
+
 	ctx.WriteMessage(504, "STRU is an obsolete command")
 }
 
@@ -470,6 +496,7 @@ func commandSYST(ctx *Context) {
 // commandTYPE responds 'TYPE' command
 func commandTYPE(ctx *Context) {
 	param := string(ctx.param)
+
 	switch param {
 	case "A", "a":
 		ctx.WriteMessage(200, "Type set to ASCII")
