@@ -18,7 +18,7 @@ func init() {
 }
 
 func main() {
-	var pid = os.Getpid()
+	pid := os.Getpid()
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -40,7 +40,7 @@ func main() {
 	http.HandleFunc("/download", controllers.Auth(controllers.Download()))
 	http.HandleFunc("/delete", controllers.Auth(controllers.Delete()))
 
-	var server = config.Default.Server.NewServer(http.DefaultServeMux)
+	server := config.Default.Server.NewServer(http.DefaultServeMux)
 
 	go func() {
 		log.Printf("server pid[%d] start, version: [%s], addr: [%s]", pid, config.VERSION, server.Addr)
@@ -49,12 +49,12 @@ func main() {
 		}
 	}()
 
-	var quitSignal = make(chan os.Signal)
+	quitSignal := make(chan os.Signal)
 	signal.Notify(quitSignal, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
 	log.Printf("server pid[%d] receive shutdown signal: [%v]", pid, <-quitSignal)
 
-	var ctx, cancel = context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {

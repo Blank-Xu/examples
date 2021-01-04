@@ -20,13 +20,12 @@ func Info() http.HandlerFunc {
 		UploadChunkSize int64  `json:"upload_chunk_size"`
 	}
 
-	var (
-		cfg     = config.Default.FileConfig
-		limiter = utils.NewLimiter(cfg.FileMd5Limit)
-	)
+	cfg := config.Default.FileConfig
+	limiter := utils.NewLimiter(cfg.FileMd5Limit)
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		var filename = r.FormValue("filename")
-		if len(filename) == 0 {
+		filename := r.FormValue("filename")
+		if filename == "" {
 			http.Error(w, "", http.StatusBadGateway)
 			return
 		}
@@ -36,10 +35,10 @@ func Info() http.HandlerFunc {
 			http.ServeFile(w, r, filepath.Join(cfg.WorkDir, filename))
 
 		case http.MethodGet:
-			var ctx = r.Context().Value(ContextKey).(*ContextValue)
+			ctx := r.Context().Value(ContextKey).(*ContextValue)
 			ctx.Log.Infof("info request filename: %s", filename)
 
-			var lfilename = filepath.Join(cfg.WorkDir, filename)
+			lfilename := filepath.Join(cfg.WorkDir, filename)
 			file, err := os.Stat(lfilename)
 			if err != nil {
 				if os.IsNotExist(err) {
@@ -74,7 +73,7 @@ func Info() http.HandlerFunc {
 				}
 			}
 
-			var resp = response{
+			resp := response{
 				Name:            file.Name(),
 				Size:            file.Size(),
 				ModTime:         file.ModTime().Unix(),

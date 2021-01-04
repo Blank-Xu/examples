@@ -25,11 +25,13 @@ type Log struct {
 
 func (p *Log) init() {
 	var format logrus.Formatter
+
 	if p.JsonFormat {
 		format = &logrus.JSONFormatter{TimestampFormat: p.TimeFormat}
 	} else {
 		format = &logrus.TextFormatter{TimestampFormat: p.TimeFormat}
 	}
+
 	logrus.SetFormatter(format)
 	logrus.SetReportCaller(p.ReportCaller)
 
@@ -41,7 +43,7 @@ func (p *Log) init() {
 			}
 		}
 
-		var filename = filepath.Join(p.WorkDir, p.Filename)
+		filename := filepath.Join(p.WorkDir, p.Filename)
 		rotate, err := rotatelogs.New(
 			filename,
 			rotatelogs.WithLinkName(filepath.Join(p.WorkDir, p.Linkname)),

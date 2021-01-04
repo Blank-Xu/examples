@@ -13,20 +13,19 @@ import (
 )
 
 func Upload() http.HandlerFunc {
-	var (
-		cfg     = config.Default.FileConfig
-		limiter = utils.NewLimiter(cfg.UploadLimit)
-	)
+	cfg := config.Default.FileConfig
+	limiter := utils.NewLimiter(cfg.UploadLimit)
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodPost, http.MethodPut:
-			var filename = r.FormValue("filename")
-			if len(filename) == 0 {
+			filename := r.FormValue("filename")
+			if filename == "" {
 				http.Error(w, "params invalid", http.StatusBadRequest)
 				return
 			}
 
-			var ctx = r.Context().Value(ContextKey).(*ContextValue)
+			ctx := r.Context().Value(ContextKey).(*ContextValue)
 			ctx.Log.Infof("upload filename: %s", filename)
 
 			// TODO: 检查 ctx.User 是否有上传权限
@@ -46,7 +45,7 @@ func Upload() http.HandlerFunc {
 				return
 			}
 
-			var contentLength, _ = strconv.ParseInt(r.Header.Get("Content-Length"), 10, 64)
+			contentLength, _ := strconv.ParseInt(r.Header.Get("Content-Length"), 10, 64)
 			ctx.Log.Infof("upload length: %d, start: %d, end: %d", contentLength, start, end)
 
 			if contentLength != (end-start+1) || contentLength > cfg.UploadChunkSize {
@@ -97,6 +96,7 @@ func Upload() http.HandlerFunc {
 
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(strconv.FormatInt(size, 10)))
+
 		default:
 			http.Error(w, "", http.StatusMethodNotAllowed)
 		}

@@ -24,41 +24,39 @@ type ContextValue struct {
 // TODO: 可以加入 ip 请求次数检测，ip 白名单和黑名单验证
 
 func Auth(handlerFunc http.HandlerFunc) http.HandlerFunc {
-	var jwt = config.Default.Jwt
+	jwt := config.Default.Jwt
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			now   = time.Now()
-			ip, _ = utils.GetIp(r)
-			token = r.Header.Get("Authorization")
-		)
+		now := time.Now()
+		ip, _ := utils.GetIp(r)
+		token := r.Header.Get("Authorization")
+
 		// "Bearer "
 		if len(token) < 8 {
 			http.Error(w, "", http.StatusUnauthorized)
 			return
 		}
 
-		var user, err = jwt.Verify(token[7:], ip)
+		user, err := jwt.Verify(token[7:], ip)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			logrus.Error(err)
 			return
 		}
 
-		var (
-			log = logrus.NewEntry(logrus.StandardLogger()).WithFields(
-				logrus.Fields{
-					"method": r.Method,
-					"ip":     ip,
-					"url":    r.URL.Path,
-					"user":   user,
-				})
-
-			ctx = context.WithValue(r.Context(), ContextKey, &ContextValue{
-				User: user,
-				Ip:   ip,
-				Log:  log,
+		log := logrus.NewEntry(logrus.StandardLogger()).WithFields(
+			logrus.Fields{
+				"method": r.Method,
+				"ip":     ip,
+				"url":    r.URL.Path,
+				"user":   user,
 			})
-		)
+
+		ctx := context.WithValue(r.Context(), ContextKey, &ContextValue{
+			User: user,
+			Ip:   ip,
+			Log:  log,
+		})
 
 		handlerFunc(w, r.WithContext(ctx))
 
@@ -72,18 +70,19 @@ func Login() http.HandlerFunc {
 		Password string `json:"password" form:"password"`
 	}
 
-	var jwt = config.Default.Jwt
-	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			now   = time.Now()
-			ip, _ = utils.GetIp(r)
-			log   = logrus.NewEntry(logrus.StandardLogger()).WithFields(
-				logrus.Fields{
-					"method": r.Method,
-					"ip":     ip,
-					"url":    r.URL.Path,
-				})
+	jwt := config.Default.Jwt
 
+	return func(w http.ResponseWriter, r *http.Request) {
+		now := time.Now()
+		ip, _ := utils.GetIp(r)
+		log := logrus.NewEntry(logrus.StandardLogger()).WithFields(
+			logrus.Fields{
+				"method": r.Method,
+				"ip":     ip,
+				"url":    r.URL.Path,
+			})
+
+		var (
 			req    request
 			isJson bool
 		)
@@ -117,7 +116,7 @@ func Login() http.HandlerFunc {
 			return
 		}
 
-		if len(req.Username) == 0 || len(req.Password) == 0 {
+		if req.Username == "" || req.Password == "" {
 			http.Error(w, "params invalid", http.StatusBadRequest)
 			return
 		}
