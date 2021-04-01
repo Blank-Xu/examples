@@ -15,6 +15,7 @@ func startAliveCheck(interval uint32) {
 	}
 
 	aliveChan := make(chan bool, 1)
+
 	aliveFunc := func() {
 		defer func() {
 			if err := recover(); err != nil {

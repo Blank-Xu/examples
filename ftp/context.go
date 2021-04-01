@@ -127,6 +127,7 @@ func (p *Context) WriteMessage(code int, msg string) (err error) {
 	buf.WriteByte(' ')
 	buf.WriteString(msg)
 	buf.WriteString("\r\n")
+
 	if _, err = buf.WriteTo(p.writer); err != nil {
 		p.Error(err)
 	}

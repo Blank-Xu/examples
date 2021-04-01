@@ -1,6 +1,7 @@
 package ftp
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"strings"
@@ -107,6 +108,8 @@ func (p *Server) handle(conn *net.TCPConn) {
 			continue
 		}
 
+		fmt.Println("command: ", ctx.command)
+
 		fn.HandlerFunc(ctx)
 
 		if len(ctx.errs) > 0 {
@@ -117,7 +120,7 @@ func (p *Server) handle(conn *net.TCPConn) {
 			break
 		}
 
-		ctx.errs = make([]error, 0, 10)
+		ctx.errs = make([]error, 0, 2)
 	}
 }
 
